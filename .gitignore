@@ -10,6 +10,10 @@ connections.toml
 *.pem
 *.key
 *secret*
+# Exception: this is the CI tool that SCANS for secrets, not a secret itself.
+# The broad *secret* rule above would otherwise silently exclude it from
+# every commit -- caught by fixture-testing the CI setup itself.
+!tools/ci/secrets_scan.py
 
 # Personal overrides (per-user, not shared)
 CLAUDE.local.md
