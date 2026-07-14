@@ -1,0 +1,24 @@
+{
+  "_fixture_note": "Anonymized real output. Run/job/task IDs randomized, job name genericized. Used by the fixture-test CI check: assertions are structural (log pre-filtering applied, error surfaced, trace truncation reported), never on exact wording.",
+  "window_days": 3,
+  "failed_run_count": 1,
+  "failed_runs": [
+    {
+      "job_name": "demo_dbt_pipeline",
+      "run_id": 100000000000001,
+      "job_id": 200000000000001,
+      "start_time_epoch_ms": 1783922855900,
+      "state_message": "Task run_dbt_demo failed with message: Workload failed, see run output for details.",
+      "failed_tasks": [
+        {
+          "task_key": "run_dbt_demo",
+          "task_run_id": 300000000000001,
+          "error_message": "Exception: dbt failed (exit 1)",
+          "trace_tail": "---------------------------------------------------------------------------\nException                                 Traceback (most recent call last)\nFile <command-000000000000000>, line 20\n     18     except Exception as e:\n     19         print(f\"Webhook failed (network issue): {e}\")\n---> 20     raise Exception(f\"dbt failed (exit {rc})\")\n     22 print(\"dbt run complete -- all models built successfully\")\n\nException: dbt failed (exit 1)",
+          "trace_suppressed_lines": 0,
+          "trace_total_lines": 9
+        }
+      ]
+    }
+  ]
+}
