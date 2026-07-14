@@ -25,11 +25,15 @@ PATTERNS = [
     ("AWS access key ID", re.compile(r"AKIA[0-9A-Z]{16}")),
 ]
 
-# A literal-looking assignment: password = "something", token: 'abc123', etc.
-# Excludes anything that clearly references an env var, a placeholder, or is empty.
+# A literal-looking assignment: password = "something", api_token: 'abc123', etc.
+# Uses \w* around the keyword (not \b...\b) so compound identifiers like
+# `api_token` or `my_secret_key` are caught too -- a plain \b boundary
+# misses these because underscores are word characters, so "api_token"
+# has no boundary before "token". Excludes anything that clearly
+# references an env var, a placeholder, or is empty.
 LITERAL_ASSIGNMENT_RE = re.compile(
     r"""(?ix)
-    \b(password|secret|token|api[_-]?key)\b
+    \w*(password|secret|token|api[_-]?key)\w*
     \s*[:=]\s*
     ['"]([^'"]{6,})['"]
     """
