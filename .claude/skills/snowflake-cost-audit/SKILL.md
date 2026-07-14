@@ -2,7 +2,7 @@
 name: snowflake-cost-audit
 description: Audits Snowflake warehouse credit usage, flags idle/oversized warehouses, and surfaces the most expensive queries in a given window. Use when asked about Snowflake costs, warehouse spend, credit usage, or cost anomalies.
 risk: read-only
-loop-tier: on-demand
+loop-tier: scheduled-notify-only
 ---
 
 ## Purpose
@@ -72,14 +72,21 @@ Render the report as Markdown with these sections, in this order. Use tables whe
 
 Always cite the actual numbers pulled by the script (credits, seconds, query IDs, percentages) — never a vague qualitative claim without the evidence behind it.
 
-## Loop tier & future promotion
+## Loop tier: promoted to Tier 3 (scheduled, notify-only)
 
-This skill is currently **Tier 1 (on-demand)** — it only runs when explicitly invoked, per the repo's rule that no skill starts above Tier 1 (`.claude/rules/loop-engineering.md`).
+This skill has two invocation modes, both backed by the same `cost_audit.py` logic:
 
-The `cost_anomalies` field the script already computes is what a future **Tier 3 (scheduled, product-loop)** version would use as its "should I speak at all" trigger — e.g. running daily and staying silent unless `cost_anomalies` is non-empty. Promoting this skill to Tier 3 is **not done here** — it would require its own explicit PR adding, per `.claude/rules/loop-engineering.md`:
-- A schedule (e.g. daily) and a notification channel (Slack/Teams) wired before it goes live
-- A per-run cost/token budget
-- A documented pause/kill switch any team member can operate
-- Logging of every run (timestamp, findings, outcome) for later audit
+1. **On-demand (Tier 1)** — `/snowflake-cost-audit` or a natural-language ask, exactly as documented above. Unchanged. Anyone can still run this interactively at any time.
+2. **Scheduled (Tier 3, product-loop)** — `scripts/scheduled_run.py`, run daily via each user's own local scheduler (Windows Task Scheduler / cron), promoted via its own explicit PR per `.claude/rules/loop-engineering.md`. It:
+   - Runs a 1-day lookback daily and uses the existing `cost_anomalies` detector as its "should I speak at all" trigger
+   - **Stays quiet when healthy** — a clean day writes exactly one line to `digest.log` and nothing else
+   - **Notifies only on a finding** — a non-empty `cost_anomalies` or `flagged_warehouses` result appends a `FINDING` block to `digest.log` and posts to Slack if `SLACK_WEBHOOK_URL` is configured (falls back to `digest.log` only, since Slack workspace access isn't set up yet — see the proposal's Section 8.3 prerequisite)
+   - **Kill switch:** set `COST_AUDIT_SCHEDULE_DISABLED=1` to pause the schedule without touching the scheduler config
+   - **Run logging:** every run — healthy, skipped, or a finding — appends one line to `digest.log` (gitignored, per-machine, not committed) so the schedule is auditable after the fact
 
-Until that PR happens, this skill stays on-demand only.
+**Setup (per user, not committed):** each teammate who wants the scheduled version creates their own local Task Scheduler entry pointing `scheduled_run.py` at their own Snowflake connection profile — same reusability model as the on-demand skill, just automated. Example (Windows, run once):
+```
+schtasks /create /tn "snowflake-cost-audit-daily" /tr "python D:\path\to\.claude\skills\snowflake-cost-audit\scripts\scheduled_run.py" /sc daily /st 07:00
+```
+
+**What's still a documented gap, not silently ignored:** Slack notification degrades to `digest.log`-only until Track 7 (workspace admin approval, channel scoping) is set up. This is the correct interim state per the repo's rules — promoting the loop tier didn't require Slack to exist first, but the notification channel's current limitation is written down here, not hidden.

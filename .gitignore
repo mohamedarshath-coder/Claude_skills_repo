@@ -16,6 +16,9 @@ CLAUDE.local.md
 .claude/settings.local.json
 .claude.json
 
+# Runtime output from scheduled skills -- per-user/per-machine, not shared
+.claude/skills/*/digest.log
+
 # Python
 __pycache__/
 *.pyc
