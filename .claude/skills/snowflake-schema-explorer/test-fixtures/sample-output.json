@@ -1,0 +1,37 @@
+{
+  "_fixture_note": "Anonymized real output (table/schema names genericized, exact row counts kept representative). This is the ACTUAL shape that surfaced a real case-sensitivity bug on first live run -- every profiling value came back null until the lookup was fixed to lowercase the alias key to match run_query()'s normalization. Also demonstrates the real APPROX_COUNT_DISTINCT over-count behavior (a column's approx distinct count exceeding total_rows). Used by the fixture-test CI check: assertions are structural, never on exact wording.",
+  "mode": "detail",
+  "schema": "RAW",
+  "table": "RAW_CUSTOMERS",
+  "columns": [
+    {
+      "column_name": "CUSTOMER_ID",
+      "data_type": "NUMBER",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 1
+    },
+    {
+      "column_name": "EMAIL",
+      "data_type": "TEXT",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 2
+    },
+    {
+      "column_name": "PHONE",
+      "data_type": "TEXT",
+      "is_nullable": "YES",
+      "column_default": null,
+      "ordinal_position": 3
+    }
+  ],
+  "profile": {
+    "total_rows": 6000,
+    "columns": {
+      "CUSTOMER_ID": {"null_count": 0, "distinct_count": 5887},
+      "EMAIL": {"null_count": 0, "distinct_count": 5968},
+      "PHONE": {"null_count": 0, "distinct_count": 6080}
+    }
+  }
+}
