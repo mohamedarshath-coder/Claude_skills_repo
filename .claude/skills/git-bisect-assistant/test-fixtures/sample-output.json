@@ -1,0 +1,26 @@
+{
+  "_fixture_note": "This is the ACTUAL output from a real live test, not synthetic: a 5-commit throwaway branch was built with a deliberate bug (commit 3 flips + to - in add()), the skill correctly bisected to it in 2 steps, and the demo branch was deleted afterward. Commit hashes/author/dates are real from that session (no anonymization needed -- synthetic demo data, not account/client data). Used by the fixture-test CI check: assertions are structural (culprit has evidence-equivalent fields, steps list is non-empty, converged is a bool), never on exact wording.",
+  "converged": true,
+  "culprit": {
+    "commit": "c90d7b5ba13c6c5b0ad6e4a579c93cccaffafec8",
+    "author": "mohamedarshath-coder",
+    "date": "Tue Jul 14 15:29:28 2026 +0530",
+    "subject": "bisect-demo: refactor internals (introduces the bug)"
+  },
+  "steps": [
+    {
+      "step": 1,
+      "commit_tested": "c90d7b5ba13c6c5b0ad6e4a579c93cccaffafec8",
+      "test_exit_code": 1,
+      "verdict": "bad"
+    },
+    {
+      "step": 2,
+      "commit_tested": "0f1f5f0b9ba2c6876c7682c43f2ffda41960f1c5",
+      "test_exit_code": 0,
+      "verdict": "good"
+    }
+  ],
+  "error": null,
+  "steps_used": 2
+}
