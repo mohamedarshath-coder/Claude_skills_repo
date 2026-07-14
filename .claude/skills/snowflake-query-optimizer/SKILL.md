@@ -47,6 +47,19 @@ Render as Markdown:
 
 Always cite the actual numbers (bytes spilled, partition counts, ms queued) behind every flagged issue — never a vague "this query could be faster" without the evidence.
 
+## Verification status per branch (honest status, not hidden)
+
+| Branch | Live account | Unit-tested |
+|---|---|---|
+| Clean query → zero issues (no false positives) | ✅ (real dbt queries) | ✅ |
+| `spilling_to_remote_storage` / `spilling_to_local_storage` | ❌ never occurred naturally | ✅ `test-fixtures/test_diagnose.py` |
+| `poor_partition_pruning` | ❌ never occurred naturally | ✅ (incl. exact-threshold boundaries) |
+| `warehouse_queueing` | ❌ never occurred naturally | ✅ |
+| `cold_start_provisioning` | ❌ never occurred naturally | ✅ |
+| Attribution→duration ranking fallback | ❌ role can read attribution, so never fired | structurally implemented, untested |
+
+Every query in the real test account has been clean (small demo workloads on an X-Small warehouse), so the positive-detection branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once. Deliberately **not** verified by forcing a real spill: that means running a deliberately huge cartesian join burning real credits, and `ACCOUNT_USAGE` latency (~45 min) prevents same-session verification anyway.
+
 ## Loop tier & future promotion
 
 Currently **Tier 1 (on-demand)**, per repo rule (`.claude/rules/loop-engineering.md`) that no skill starts above Tier 1.
