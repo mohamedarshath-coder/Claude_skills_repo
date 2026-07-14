@@ -1,0 +1,42 @@
+{
+  "_fixture_note": "Four representative scenarios. The 'global' and 'single-skill' and 'none' examples are the ACTUAL shape of real output verified live against this repo (re-keyed to a small hypothetical 3-skill repo -- skill-a/skill-b/skill-c -- so this fixture stays stable as this repo's real skill count keeps growing). The 'cross-skill' example is SYNTHETIC/hand-crafted: this branch has never actually fired in this repo (no real cross-skill file reference exists yet), so it's included here purely for structural CI coverage, not as a claim it's been field-verified.",
+  "scenarios": [
+    {
+      "scenario": "global (shared rule file changed)",
+      "changed_file": ".claude/rules/loop-engineering.md",
+      "scope": "global",
+      "impacted_skill_count": 3,
+      "impacted_skills": [
+        {"skill": "skill-a", "reason": "'.claude/rules/loop-engineering.md' is a shared convention/CI file -- every skill's authoring rules or validation pipeline depends on it"},
+        {"skill": "skill-b", "reason": "'.claude/rules/loop-engineering.md' is a shared convention/CI file -- every skill's authoring rules or validation pipeline depends on it"},
+        {"skill": "skill-c", "reason": "'.claude/rules/loop-engineering.md' is a shared convention/CI file -- every skill's authoring rules or validation pipeline depends on it"}
+      ]
+    },
+    {
+      "scenario": "single-skill (a skill's own file changed, no cross-references)",
+      "changed_file": ".claude/skills/skill-a/scripts/main.py",
+      "scope": "single-skill",
+      "impacted_skill_count": 1,
+      "impacted_skills": [
+        {"skill": "skill-a", "reason": "'.claude/skills/skill-a/scripts/main.py' belongs to this skill"}
+      ]
+    },
+    {
+      "scenario": "cross-skill (SYNTHETIC -- untested in practice, see _fixture_note)",
+      "changed_file": ".claude/skills/skill-a/scripts/shared_helper.py",
+      "scope": "cross-skill",
+      "impacted_skill_count": 2,
+      "impacted_skills": [
+        {"skill": "skill-a", "reason": "'.claude/skills/skill-a/scripts/shared_helper.py' belongs to this skill"},
+        {"skill": "skill-b", "reason": "references 'shared_helper.py' or its path directly"}
+      ]
+    },
+    {
+      "scenario": "none (docs-only file)",
+      "changed_file": "PROJECT-NOTES.md",
+      "scope": "none",
+      "impacted_skill_count": 0,
+      "impacted_skills": []
+    }
+  ]
+}
