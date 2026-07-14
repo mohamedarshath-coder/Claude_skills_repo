@@ -33,3 +33,6 @@ venv/
 .DS_Store
 Thumbs.db
 *.swp
+
+# Generated per-runtime exports -- regenerate via tools/export-skill, never hand-edit or commit
+exports/
