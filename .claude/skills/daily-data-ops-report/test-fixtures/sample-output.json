@@ -1,0 +1,44 @@
+{
+  "_fixture_note": "ACTUAL output of the first live run (names/IDs kept generic where user-identifying). Historic detail: this run produced the first-ever live firing of snowflake-cost-audit's anomaly detector -- the +96.6% spike was caused by this project's own testing queries that day. Freshness staleness is true (static demo data). Used by fixture-test CI: structural assertions only.",
+  "window_days": 1,
+  "failed_jobs": {
+    "failed_run_count": 0,
+    "jobs": [],
+    "runs": []
+  },
+  "snowflake_cost": {
+    "total_warehouse_credits_used": 0.76,
+    "cost_anomalies": [
+      {
+        "warehouse": "TRANSFORM_WH",
+        "latest_day": "2026-07-14 00:00:00-07:00",
+        "latest_credits": 0.352,
+        "trailing_avg_credits": 0.179,
+        "pct_increase": 96.6
+      }
+    ],
+    "flagged_warehouses": [],
+    "scope_note": "Totals cover user-managed warehouses only (WAREHOUSE_METERING_HISTORY). Serverless features (tasks, Snowpipe, etc.) bill separately and are not included."
+  },
+  "cluster_risks": {
+    "clusters_with_issues": 3,
+    "issues": [
+      {"cluster": "User A's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"},
+      {"cluster": "User B's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"},
+      {"cluster": "User C's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"}
+    ]
+  },
+  "freshness": [
+    {
+      "table": "RAW.RAW_ORDERS",
+      "stale_columns": [
+        {"column": "ORDER_DATE", "days_since_latest_value": 560, "stale": true},
+        {"column": "UPDATED_AT", "days_since_latest_value": 560, "stale": true}
+      ],
+      "fresh_columns_count": 0
+    }
+  ],
+  "errors": {},
+  "total_findings": 6,
+  "all_clear": false
+}

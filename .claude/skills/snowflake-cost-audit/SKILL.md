@@ -77,7 +77,7 @@ Always cite the actual numbers pulled by the script (credits, seconds, query IDs
 | Path | Live account | Unit-tested |
 |---|---|---|
 | Credits/config/top-queries reporting, clean day | ✅ (multiple real runs) | ✅ |
-| `cost_anomalies` positive detection | ❌ spend has been low/stable; the earlier "FINDING" demo was a hand-crafted log line bypassing the function | ✅ `test-fixtures/test_cost_audit.py` (incl. exact-50%-threshold boundary, single-day skip, per-warehouse independence, zero-usage divide-by-zero guard) |
+| `cost_anomalies` positive detection | ✅ fired live 2026-07-14: `INSIGHTOPS_WH` +96.6% vs trailing avg — caused by this project's own testing queries that day (caught via `daily-data-ops-report`'s first run) | ✅ `test-fixtures/test_cost_audit.py` (incl. exact-50%-threshold boundary, single-day skip, per-warehouse independence, zero-usage divide-by-zero guard) |
 | `possibly_oversized` warehouse flag | ❌ every real warehouse is X-Small | ✅ (2X-LARGE + 3s queries fires; busy LARGE and X-Small correctly don't) |
 | `post_to_slack` notification | ❌ no Slack webhook configured yet (Track 7) | ✅ against a **real local HTTP listener** — actual POST sent, payload and Content-Type asserted; silent no-op when unset also verified |
 | Scheduled run: healthy / kill-switch / finding log paths | ✅ (digest.log entries) | — |
