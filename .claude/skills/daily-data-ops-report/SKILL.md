@@ -52,7 +52,8 @@ First live run (both platforms, 2 watched tables) returned a genuinely new findi
 |---|---|
 | All four sections, live, both platforms | ✅ |
 | Live cost-anomaly finding flowing through | ✅ (first-ever live firing of that detector) |
-| Per-section degradation | ✅ inherited pattern, live-verified on `unified-cost-optimizer`; not separately re-verified here |
+| Per-section degradation | ✅ verified directly on this skill: with deliberately broken Databricks credentials, both Databricks sections returned `None` with real errors in `errors`, while both Snowflake sections (cost incl. the live anomaly, freshness) completed normally |
+| Evidence passthrough on cluster findings | ✅ — the first version dropped evidence when compacting; caught by the repo's own fixture-test CI (a red Actions run exists as proof), fixed to carry evidence/recommendation through verbatim |
 | `all_clear: true` (a genuinely quiet day) | ❌ never observed — every real run so far has had findings; the quiet path is simple (`findings == 0 and not errors`) but unproven |
 
 ## Loop tier & future promotion

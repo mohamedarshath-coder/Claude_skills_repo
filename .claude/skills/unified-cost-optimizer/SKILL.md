@@ -54,7 +54,9 @@ Run against both real systems together. Happy path: Snowflake returned zero cost
 
 ## Known untested paths (honest status, not hidden)
 
-**Tier 1 (quantified) has never actually been non-empty in a live run** — no real cost anomaly has occurred in the test account during this project's testing window. The ranking-by-credits logic is implemented and simple (a single `sort`), but has never been exercised against more than zero real Tier 1 entries. Also, `AWS` is a third platform named in this skill's origin (Track/Cross-Cutting backlog as `unified-cost-optimizer` combining Snowflake + Databricks + AWS) — this version only combines two, since no AWS access exists yet in this environment; adding a third source is a natural, not-yet-done extension.
+**Tier 1 (quantified) — now live-verified**: on 2026-07-14 a real cost anomaly existed in the account (`INSIGHTOPS_WH` +134.1% vs trailing average, caused by this project's own testing queries that day), and this skill correctly surfaced it as a Tier 1 entry with real quantified credits (0.419) and evidence, alongside the 3 unquantified Tier 2 config risks. The initial "never non-empty" gap closed with real data. (Multi-entry Tier 1 ranking — more than one simultaneous anomaly — has still never occurred live; the sort is trivial but unexercised beyond one entry.)
+
+`AWS` remains the not-yet-added third platform from this skill's original backlog scoping — no AWS access exists in this environment; adding it is a natural, not-yet-done extension.
 
 ## Loop tier & future promotion
 

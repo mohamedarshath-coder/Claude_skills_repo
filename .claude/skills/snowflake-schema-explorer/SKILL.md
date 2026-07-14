@@ -49,6 +49,16 @@ Followed by a one-line note if `--profile` was used: "Distinct counts are approx
 
 Tested against real tables in an actual Snowflake account. Overview mode against the `RAW` schema correctly listed all 7 real tables with accurate row counts and byte sizes. Detail mode with `--profile` against `RAW_CUSTOMERS` (6,000 real rows, 25 real columns) surfaced a genuine bug on the first attempt: every profiling value came back `null` due to a case-sensitivity mismatch between the SQL alias casing and the result-set key lookup. Fixed and re-verified — real counts now populate correctly (e.g. `CUSTOMER_ID`: 0 nulls, ~5,887 distinct of 6,000 rows). This same live run also surfaced the `APPROX_COUNT_DISTINCT` over-count behavior firsthand (`PHONE` reported ~6,080 distinct against exactly 6,000 rows), which is why the approximation caveat above is mandatory, not optional.
 
+## Verification status (honest)
+
+| Path | Status |
+|---|---|
+| Overview mode (tables + views listed) | ✅ live (7-table real schema) |
+| Detail + `--profile` on a base table | ✅ live (6,000-row table; surfaced and fixed the case-sensitivity bug) |
+| Detail + `--profile` on a **VIEW** | ✅ live — profiles correctly through the view (aggregate SELECTs, no table-metadata dependency) |
+| Case-fix regression pinned | ✅ `test-fixtures/test_explorer.py` (4 unit tests — the exact live-caught bug: profiled values silently all-`None` when alias case didn't match the lowercased result keys) |
+| Approx-distinct under-estimation | ✅ cross-confirmed: this skill reports ~5,887 distinct for a column `snowflake-data-quality` proved is exactly 6,000 — the documented HyperLogLog caveat, demonstrated twice |
+
 ## Loop tier
 
 **On-demand (Tier 1).** No obvious scheduled variant — schema/column profiling is inherently a point-in-time, ask-when-needed operation, not something to run on a timer.
