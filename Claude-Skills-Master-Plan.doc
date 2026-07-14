@@ -1,0 +1,311 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="utf-8">
+<title>Claude Skills Automation Library — Master Plan</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page { size: A4; margin: 2cm 2cm 2cm 2cm; }
+body { font-family: Calibri, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.35; }
+h1 { font-size: 20pt; color: #1f3864; border-bottom: 2px solid #1f3864; padding-bottom: 4px; }
+h2 { font-size: 15pt; color: #1f3864; margin-top: 24px; }
+h3 { font-size: 12.5pt; color: #2e5496; margin-top: 18px; }
+p.meta { color: #555; margin: 2px 0; }
+p.note { color: #555; font-style: italic; margin: 4px 0 8px 0; }
+table { border-collapse: collapse; width: 100%; margin: 8px 0 16px 0; font-size: 10.5pt; }
+th { background: #1f3864; color: #ffffff; text-align: left; padding: 6px 8px; border: 1px solid #1f3864; }
+td { padding: 5px 8px; border: 1px solid #bfbfbf; vertical-align: top; }
+tr.alt td { background: #f2f5fa; }
+code { font-family: Consolas, monospace; font-size: 10pt; background: #eef1f6; padding: 0 3px; }
+.rules { background: #eef1f6; border-left: 4px solid #1f3864; padding: 8px 12px; margin: 10px 0; }
+.flag { color: #843c0c; font-weight: bold; }
+.new { background: #eaf3ea; border-left: 4px solid #2e7d32; padding: 8px 12px; margin: 10px 0; }
+hr { border: none; border-top: 1px solid #bfbfbf; margin: 22px 0; }
+a { color: #1f3864; }
+</style>
+</head>
+<body>
+
+<h1>Claude Skills Automation Library — Master Plan</h1>
+<p class="meta"><b>Prepared by:</b> Mohamed Arshath</p>
+<p class="meta"><b>Date:</b> 08 July 2026</p>
+<p class="meta"><b>Companion document:</b> Claude Skills Project Proposal (governance, effort, metrics, risks)</p>
+
+<h2>Vision</h2>
+<p>One shared, version-controlled repository of Claude Code Skills that automates repetitive work across the entire engineering organization — data platform operations, DevOps, data engineering practices, and client delivery. Any engineer clones the repo, installs in one command, and gets <code>/skill-name</code> automations that run under their own credentials.</p>
+<div class="rules"><b>Guiding rules:</b> read-only by default &nbsp;·&nbsp; no credentials or client data/PII in the repo &nbsp;·&nbsp; every skill PR-reviewed &nbsp;·&nbsp; anything that writes requires explicit confirmation.</div>
+
+<h2>The Five Tracks</h2>
+<table>
+<tr><th>#</th><th>Track</th><th>What it covers</th><th>When</th></tr>
+<tr><td>1</td><td><b>Data Platform Ops</b></td><td>Snowflake, Databricks, Airflow, AWS, Power BI, Tableau</td><td>Phase 1–2 (start now)</td></tr>
+<tr class="alt"><td>2</td><td><b>DevOps &amp; Platform</b></td><td>CI/CD, Terraform, Docker/K8s, monitoring, security</td><td>Phase 3</td></tr>
+<tr><td>3</td><td><b>Data Engineering Practices</b></td><td>Spark tuning, SQL review, migrations, data quality, synthetic data</td><td>Phase 3</td></tr>
+<tr class="alt"><td>4</td><td><b>SDLC &amp; Client Delivery</b></td><td>PR review, testing, docs, analytics deliverables</td><td>Phase 4</td></tr>
+<tr><td>5</td><td><b>Platform-Native Skill Ecosystems</b></td><td>Interop with Snowflake Cortex/CoCo Skills and Databricks Agent Skills</td><td>Cuts across all phases</td></tr>
+</table>
+
+<hr>
+<h2>Track 5 — Platform-Native Skill Ecosystems</h2>
+<div class="new">Raised by leadership after a client call — highest-priority track to formalize since it directly affects our client story.</div>
+<p>Both Snowflake and Databricks have recently published their own <b>Agent Skills</b> standards — and the important part is that they use the same <code>SKILL.md</code> package format we're already building on for Claude Code. This means skills are not a Claude-only asset; they are a <b>portable, platform-agnostic automation layer</b>.</p>
+
+<h3>Snowflake Cortex Agents Skills</h3>
+<p class="note">docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-skills</p>
+<ul>
+<li>Skills run natively <b>inside Snowflake's own Cortex Agents</b> (Snowflake's in-platform AI) — no external AI assistant required</li>
+<li>Same <code>SKILL.md</code> structure: name, description, instructions, optional scripts</li>
+<li>Stored in a Snowflake named stage or a Git repo (pinned to a commit or an auto-updating tag)</li>
+<li>Attached to an agent via SQL, REST API, or Snowsight UI; the agent auto-discovers and invokes relevant skills based on the user's query</li>
+<li>Automatically available inside <b>Snowflake CoWork</b></li>
+</ul>
+
+<h3>Snowflake coco-skills (Cortex Code)</h3>
+<p class="note">github.com/Snowflake-Labs/coco-skills</p>
+<ul>
+<li>A curated, open community repo of skills for <b>Cortex Code (CoCo)</b>, Snowflake's AI-powered CLI dev tool</li>
+<li>Existing skill categories: documentation/quickstart search, semantic-view &amp; ontology modeling, Snowpipe/PrivateLink/SAP integration, RBAC, MLOps pipelines, data clean rooms</li>
+<li>Invoked in CoCo with <code>$&lt;skill-name&gt;</code> + a prompt</li>
+<li>Open contribution model (Apache 2.0 or Snowflake license) — employees, partners, and community can submit skills via a standardized folder structure</li>
+</ul>
+
+<h3>Databricks Agent Skills</h3>
+<p class="note">docs.databricks.com/aws/en/agent-skills</p>
+<ul>
+<li>Implements the <b>open Agent Skills standard</b> — the same Markdown+metadata format usable by Claude, GitHub Copilot, and Databricks' own built-in coding agent (<b>Genie Code</b>)</li>
+<li>Installed via the Databricks CLI's <code>databricks aitools</code> command group (auto-detects the coding agent in use) or a third-party Skills CLI package manager</li>
+<li>Covers compute, orchestration, storage, and Databricks Apps development patterns</li>
+</ul>
+
+<h3>Strategic implications for our project</h3>
+<table>
+<tr><th>Implication</th><th>What it means for us</th></tr>
+<tr><td><b>Reuse, don't rebuild</b></td><td>Before writing a Snowflake or Databricks skill from scratch, check coco-skills / Databricks Agent Skills for an existing one we can adopt or fork — accelerates Track 1</td></tr>
+<tr class="alt"><td><b>Client delivery without Claude</b></td><td>For clients who haven't adopted an AI coding assistant, the same skill content can run natively via Snowflake Cortex Agents/CoCo or Databricks Genie Code — removes "you need Claude" as an adoption blocker</td></tr>
+<tr><td><b>One skill, multiple runtimes</b></td><td>Because all three ecosystems use the SKILL.md format, a well-written skill can largely be dual/triple-purposed (Claude Code + Cortex Agents + Databricks Genie) with minor adaptation</td></tr>
+<tr class="alt"><td><b>Contribution &amp; visibility</b></td><td>Generic, non-client-specific skills we build could be contributed back to coco-skills or the Databricks Skills ecosystem — positions us as an active partner in the open Agent Skills space</td></tr>
+<tr><td><b>Governance stays the same</b></td><td>Cortex Agents skills stored in a Snowflake stage/Git and Databricks skills installed via CLI still follow our rule: no credentials/PII in the skill package itself</td></tr>
+</table>
+
+<p><b>Action items:</b></p>
+<ol>
+<li>Audit coco-skills and Databricks Agent Skills repos against our Track 1 roadmap to identify overlap before building duplicates</li>
+<li>Pilot one skill (e.g. <code>snowflake-cost-audit</code>) as a dual-format skill: works in Claude Code <i>and</i> as a Cortex Agents skill in a Snowflake stage</li>
+<li>Add "publish to native ecosystem" as an optional final step in our skill-authoring template, where applicable</li>
+<li>Flag this track explicitly in client conversations — "works with or without an AI coding assistant" is a differentiator</li>
+</ol>
+
+<hr>
+<h2>Track 1 — Data Platform Ops</h2>
+
+<h3>Snowflake</h3>
+<p class="note">Access: Snowflake CLI / Python connector, per-user roles; ACCOUNT_USAGE read for audits</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>snowflake-cost-audit</code></td><td>Warehouse credit usage, idle/oversized warehouses, top expensive queries, month-over-month trends</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>snowflake-query</code></td><td>Safe ad-hoc SQL: auto-LIMIT, formatted results, plain-English explanation</td><td>Read-only</td></tr>
+<tr><td><code>snowflake-schema-explorer</code></td><td>Describe tables, profile columns, generate data dictionaries</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>snowflake-query-optimizer</code></td><td>Pull query profile of a slow query → clustering/rewrite recommendations</td><td>Read-only</td></tr>
+<tr><td><code>snowflake-data-quality</code></td><td>Null/duplicate/freshness checks on a table with anomaly report</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>snowflake-access-review</code></td><td>Roles, grants, who-can-see-what audit for compliance</td><td>Read-only</td></tr>
+<tr><td><code>snowflake-ddl-diff</code></td><td>Compare dev/qa/prod schemas → generate migration DDL</td><td>Generates code</td></tr>
+</table>
+
+<h3>Databricks</h3>
+<p class="note">Access: databricks CLI / REST API, per-user tokens or SSO profiles</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>databricks-job-triage</code></td><td>Failed job → run logs → root cause → suggested fix</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>databricks-cluster-audit</code></td><td>Idle/long-running/oversized clusters, cost hotspots</td><td>Read-only</td></tr>
+<tr><td><code>databricks-notebook-review</code></td><td>Lint notebooks: collect() abuse, no partitioning, hardcoded paths</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>databricks-dlt-monitor</code></td><td>Delta Live Tables pipeline health + expectation results</td><td>Read-only</td></tr>
+<tr><td><code>databricks-unity-catalog-audit</code></td><td>Unity Catalog permissions, ownership, lineage review</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>databricks-job-deploy</code></td><td>Create/update jobs from validated spec</td><td><span class="flag">Write — confirm</span></td></tr>
+</table>
+
+<h3>Airflow</h3>
+<p class="note">Access: REST API, per-user or read-only service credentials</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>airflow-dag-health</code></td><td>Environment-wide failed/stuck DAG summary with root causes — the "morning check"</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>airflow-failed-task-triage</code></td><td>One failed task → logs → error identified → fix suggested</td><td>Read-only</td></tr>
+<tr><td><code>airflow-dag-review</code></td><td>Lint DAG code: retries, idempotency, catchup, top-level code</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>airflow-sla-report</code></td><td>Weekly SLA misses and slowest tasks</td><td>Read-only</td></tr>
+<tr><td><code>airflow-dag-generator</code></td><td>Scaffold new DAGs from team template with alerts wired in</td><td>Generates code</td></tr>
+<tr class="alt"><td><code>airflow-backfill</code></td><td>Validated, dependency-aware backfill planning and execution</td><td><span class="flag">Write — confirm</span></td></tr>
+</table>
+
+<h3>AWS</h3>
+<p class="note">Access: aws CLI with per-user SSO profiles, read-only policies</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>aws-cost-report</code></td><td>Cost Explorer by service/tag, month-over-month deltas, anomaly flags</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>aws-s3-audit</code></td><td>Public access, encryption, lifecycle, stale data inventory</td><td>Read-only</td></tr>
+<tr><td><code>aws-glue-triage</code></td><td>Failed Glue job diagnosis from CloudWatch logs</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>aws-lambda-health</code></td><td>Error rates, throttles, cold starts across functions</td><td>Read-only</td></tr>
+<tr><td><code>aws-iam-review</code></td><td>Over-permissive policies, unused roles/keys</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>aws-resource-cleanup-report</code></td><td>Orphaned EBS volumes, old snapshots, unattached IPs — report only</td><td>Read-only</td></tr>
+</table>
+
+<h3>Power BI</h3>
+<p class="note">Access: REST API via per-user Azure AD; admin-read API for tenant audits</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>powerbi-refresh-triage</code></td><td>Failed dataset refreshes → cause (credentials/gateway/timeout)</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>powerbi-workspace-audit</code></td><td>Unused reports, stale datasets, orphaned content</td><td>Read-only</td></tr>
+<tr><td><code>powerbi-lineage-trace</code></td><td>Which reports break if a source table changes</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>powerbi-dax-review</code></td><td>DAX performance anti-patterns → optimizations</td><td>Read-only</td></tr>
+<tr><td><code>powerbi-access-review</code></td><td>Workspace sharing + row-level-security audit</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>powerbi-gateway-health</code></td><td>Gateway status and data source connectivity</td><td>Read-only</td></tr>
+</table>
+
+<h3>Tableau</h3>
+<p class="note">Access: REST + Metadata API, per-user personal access tokens</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>tableau-extract-triage</code></td><td>Failed extract refreshes: identify, diagnose, summarize</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>tableau-content-audit</code></td><td>Stale workbooks, unused data sources, unviewed dashboards</td><td>Read-only</td></tr>
+<tr><td><code>tableau-workbook-review</code></td><td>Performance review: filters, row-level calcs, extract design</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>tableau-permissions-audit</code></td><td>Project/workbook permission review</td><td>Read-only</td></tr>
+<tr><td><code>tableau-lineage-trace</code></td><td>Which dashboards depend on a given database table</td><td>Read-only</td></tr>
+</table>
+
+<hr>
+<h2>Track 2 — DevOps &amp; Platform</h2>
+
+<h3>CI/CD (GitHub Actions / GitLab CI / Jenkins / Azure DevOps)</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>ci-failure-triage</code></td><td>Failed pipeline → logs → failing step + root cause + fix. Highest-frequency DevOps pain</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>pipeline-generator</code></td><td>Scaffold CI/CD pipelines from team standards (lint → test → scan → deploy)</td><td>Generates code</td></tr>
+<tr><td><code>release-notes</code></td><td>Generate release notes from PRs/commits between two tags</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>deploy-checklist</code></td><td>Pre-deploy verification: pending migrations, config diffs, rollback plan</td><td>Read-only</td></tr>
+</table>
+
+<h3>Infrastructure as Code (Terraform / CloudFormation)</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>terraform-plan-review</code></td><td>Explain a plan in plain English; flag destructive changes loudly</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>terraform-security-scan</code></td><td>Open security groups, unencrypted resources, missing tags</td><td>Read-only</td></tr>
+<tr><td><code>iac-drift-check</code></td><td>Detect drift between deployed infrastructure and code</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>terraform-module-generator</code></td><td>Scaffold modules per team conventions</td><td>Generates code</td></tr>
+</table>
+
+<h3>Containers &amp; Kubernetes (Docker / K8s / EKS)</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>k8s-pod-triage</code></td><td>CrashLoopBackOff / OOMKilled / Pending → describe + logs → diagnosis</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>dockerfile-review</code></td><td>Image size, layer caching, root user, secrets in layers</td><td>Read-only</td></tr>
+<tr><td><code>k8s-resource-audit</code></td><td>Over/under-provisioned requests &amp; limits, cost implications</td><td>Read-only</td></tr>
+</table>
+
+<h3>Monitoring &amp; Incident Response (CloudWatch / Grafana / Datadog)</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>alert-triage</code></td><td>Alert fires → pull metrics/logs → correlate → probable cause summary</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>log-analyzer</code></td><td>"What changed in error patterns in the last 24 hours?"</td><td>Read-only</td></tr>
+<tr><td><code>incident-postmortem</code></td><td>Draft postmortem from incident timeline, logs, ticket trail</td><td>Generates doc</td></tr>
+</table>
+
+<h3>Security &amp; Compliance</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>dependency-audit</code></td><td>CVE scan of requirements.txt / package.json with upgrade paths</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>secrets-scan</code></td><td>Pre-commit check for accidentally staged credentials</td><td>Read-only</td></tr>
+<tr><td><code>ssl-cert-check</code></td><td>Expiring certificate report</td><td>Read-only</td></tr>
+</table>
+
+<hr>
+<h2>Track 3 — Data Engineering Practices</h2>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>spark-job-tuner</code></td><td>Read Spark event logs/UI → diagnose skew, spills, shuffle issues → tuning recommendations</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>sql-review</code></td><td>Dialect-aware SQL review: performance, correctness, style</td><td>Read-only</td></tr>
+<tr><td><code>pipeline-scaffolder</code></td><td>New ingestion pipeline from template: source → staging → transform + tests + alerts</td><td>Generates code</td></tr>
+<tr class="alt"><td><code>schema-drift-detector</code></td><td>Source vs. target schema comparison → ALTER statements</td><td>Read-only</td></tr>
+<tr><td><code>data-contract-validator</code></td><td>Validate datasets against agreed contracts before promotion</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>dq-rule-generator</code></td><td>Profile a table → propose data-quality rules/tests</td><td>Read-only</td></tr>
+<tr><td><code>sample-data-generator</code></td><td>Realistic synthetic test data for dev — removes any need for client data in dev environments</td><td>Generates data</td></tr>
+<tr class="alt"><td><code>migration-assistant</code></td><td>Translate SQL/jobs between platforms (SQL Server → Snowflake, Hive → Databricks) — high value for consulting projects</td><td>Generates code</td></tr>
+</table>
+
+<h3>dbt (if adopted — strongest single fit in this track)</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>dbt-test-triage</code></td><td>Run tests, explain failures, trace to source data</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>dbt-model-generator</code></td><td>Scaffold staging/mart models with naming conventions + tests</td><td>Generates code</td></tr>
+<tr><td><code>dbt-docs-writer</code></td><td>Auto-generate model/column descriptions in schema.yml</td><td>Generates docs</td></tr>
+<tr class="alt"><td><code>dbt-pr-review</code></td><td>Missing tests, breaking changes, materialization choices</td><td>Read-only</td></tr>
+</table>
+
+<hr>
+<h2>Track 4 — SDLC &amp; Client Delivery</h2>
+
+<h3>Software Development Lifecycle</h3>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>pr-review-standards</code></td><td>Code review tuned to our conventions, not generic linting</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>test-generator</code></td><td>Unit tests for uncovered code paths</td><td>Generates code</td></tr>
+<tr><td><code>doc-sync</code></td><td>Keep READMEs / Confluence in sync with code changes</td><td>Generates docs</td></tr>
+<tr class="alt"><td><code>onboarding-buddy</code></td><td>Interactive new-joiner walkthrough: setup, tooling, conventions</td><td>Read-only</td></tr>
+<tr><td><code>estimate-helper</code></td><td>Break a Jira epic into tasks with effort estimates</td><td>Generates plan</td></tr>
+</table>
+
+<h3>Analytics &amp; Client Delivery</h3>
+<p class="note">Strict rule: metadata and aggregates only — no client data or PII in any output</p>
+<table>
+<tr><th>Skill</th><th>Use case</th><th>Risk</th></tr>
+<tr><td><code>eda-starter</code></td><td>Standardized exploratory data analysis on a new dataset: profiling, distributions, quality summary</td><td>Read-only</td></tr>
+<tr class="alt"><td><code>insight-summarizer</code></td><td>Query results → client-ready narrative summary (aggregates only)</td><td>Generates doc</td></tr>
+<tr><td><code>deck-outline-generator</code></td><td>Structure findings into a presentation outline</td><td>Generates doc</td></tr>
+<tr class="alt"><td><code>sow-requirement-tracer</code></td><td>Map deliverables against project requirement documents</td><td>Read-only</td></tr>
+</table>
+
+<hr>
+<h2>Cross-Cutting Skills (span multiple tracks — highest value)</h2>
+<table>
+<tr><th>Skill</th><th>Use case</th></tr>
+<tr><td><code>pipeline-incident-triage</code></td><td><b>The flagship.</b> Airflow DAG failed → task log → it's a Databricks job → its run error → it's a Snowflake grant issue → full chain reported with fix. Replaces ~30 minutes of tab-hopping with one command</td></tr>
+<tr class="alt"><td><code>freshness-trace</code></td><td>"Client dashboard is stale" → BI refresh status → Snowflake source → Airflow DAG → pinpoint the break</td></tr>
+<tr><td><code>daily-data-ops-report</code></td><td>One morning summary: DAG health + failed jobs + cost anomalies + freshness (can run on a schedule)</td></tr>
+<tr class="alt"><td><code>jira-ticket-from-incident</code></td><td>After triage, auto-draft the Jira ticket with logs and root cause</td></tr>
+<tr><td><code>data-lineage-trace</code></td><td>"Where does this column come from?" — target table back through transforms to source</td></tr>
+<tr class="alt"><td><code>runbook-executor</code></td><td>Convert existing Confluence runbooks into executable skills</td></tr>
+</table>
+
+<hr>
+<h2>Delivery Roadmap</h2>
+<table>
+<tr><th>Phase</th><th>Weeks</th><th>Focus</th><th>Deliverables</th></tr>
+<tr><td><b>1 — Foundation</b></td><td>1–2</td><td>Repo, conventions, template, install scripts, security guardrails</td><td>Working repo skeleton anyone can install from</td></tr>
+<tr class="alt"><td><b>2 — Data Platform pilots</b></td><td>2–4</td><td><code>airflow-dag-health</code>, <code>snowflake-cost-audit</code>, <code>databricks-job-triage</code></td><td>3 skills in daily use by pilot group</td></tr>
+<tr><td><b>3 — Rollout + DevOps/DE tracks</b></td><td>4–8</td><td>Team onboarding; first DevOps skills (<code>ci-failure-triage</code>, <code>terraform-plan-review</code>) and DE skills (<code>sql-review</code>, <code>spark-job-tuner</code>); expand Track 1 by team vote</td><td>10–15 skills live; contribution workflow running</td></tr>
+<tr class="alt"><td><b>4 — Cross-cutting + Delivery track</b></td><td>8+</td><td><code>pipeline-incident-triage</code>, <code>daily-data-ops-report</code>, Jira integration, client-delivery skills</td><td>Flagship cross-tool automations; org-wide adoption</td></tr>
+<tr><td><b>5 — Native ecosystem pilot</b></td><td>Parallel to Phase 3+</td><td>Audit coco-skills/Databricks skills for reuse; dual-publish one pilot skill (e.g. <code>snowflake-cost-audit</code>) to Cortex Agents</td><td>One skill running in both Claude Code and a native platform agent</td></tr>
+</table>
+<p><b>Prioritization principle within every track:</b> triage &amp; reporting skills first (daily pain, read-only, safe), generators second, write-capable skills last and always confirmation-gated.</p>
+
+<h2>Skill Count Summary</h2>
+<table>
+<tr><th>Track</th><th>Skills planned</th></tr>
+<tr><td>Data Platform Ops</td><td>~34 (Snowflake 7, Databricks 6, Airflow 6, AWS 6, Power BI 6, Tableau 5)</td></tr>
+<tr class="alt"><td>DevOps &amp; Platform</td><td>~17</td></tr>
+<tr><td>Data Engineering Practices</td><td>~12 (incl. dbt)</td></tr>
+<tr class="alt"><td>SDLC &amp; Client Delivery</td><td>~9</td></tr>
+<tr><td>Cross-cutting</td><td>~6</td></tr>
+<tr class="alt"><td><b>Total catalog</b></td><td><b>~78 candidate skills</b></td></tr>
+</table>
+<p><i>This is a menu, not a commitment — Phases 1–2 commit to ~5 skills; everything after is prioritized by team demand and measured value. Track 5 (native ecosystems) adds reuse opportunities rather than new build effort.</i></p>
+
+<h2>What Each Track Needs (Requirements Summary)</h2>
+<table>
+<tr><th>Track</th><th>Access needed</th><th>Tooling per user</th></tr>
+<tr><td>Data Platform</td><td>Per-user credentials for Snowflake / Databricks / Airflow API / AWS SSO / Power BI (Azure AD) / Tableau PAT</td><td>snowsql, databricks CLI, aws CLI, Python 3.10+</td></tr>
+<tr class="alt"><td>DevOps</td><td>Read access to CI system API, Terraform state (read), kubectl contexts, monitoring APIs</td><td>git, terraform, kubectl, docker</td></tr>
+<tr><td>DE Practices</td><td>Mostly file/code-based — minimal new access; Spark history server read access</td><td>Python, Spark dependencies as needed</td></tr>
+<tr class="alt"><td>SDLC &amp; Delivery</td><td>Git platform API, Jira/Confluence (connector already available)</td><td>git</td></tr>
+<tr><td>Platform-Native Ecosystems</td><td>Snowflake stage/Git-write access for Cortex Agents Skills; <code>databricks aitools</code> CLI access for Databricks Agent Skills</td><td>Snowflake CLI, Databricks CLI</td></tr>
+</table>
+<div class="rules">Common to all: Claude Code license, Git, and the skills repo. <b>No shared service accounts, no stored secrets — every skill runs as the invoking user.</b></div>
+
+</body>
+</html>

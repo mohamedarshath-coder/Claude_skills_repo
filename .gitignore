@@ -1,0 +1,28 @@
+# Ground rule: no credentials or connection strings ever committed (see CLAUDE.md, .claude/rules/portability.md)
+.env
+*.env
+**/.env
+connections.toml
+**/connections.toml
+.databrickscfg
+**/.databrickscfg
+*credentials*
+*.pem
+*.key
+*secret*
+
+# Personal overrides (per-user, not shared)
+CLAUDE.local.md
+.claude/settings.local.json
+.claude.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp

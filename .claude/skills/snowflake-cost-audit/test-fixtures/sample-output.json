@@ -1,0 +1,66 @@
+{
+  "_fixture_note": "Anonymized real output from 2026-07-13 (7-day window). Query IDs randomized, warehouse/database names genericized. Used by the fixture-test CI check: assertions are structural (fields present, tables renderable, scope/latency notes carried through), never on exact wording.",
+  "window_days": 7,
+  "scope_note": "Totals cover user-managed warehouses only (WAREHOUSE_METERING_HISTORY). Serverless features (tasks, Snowpipe, etc.) bill separately and are not included.",
+  "data_latency_note": "ACCOUNT_USAGE views lag real time: up to ~45 min for query history, up to ~3 h for metering.",
+  "total_warehouse_credits_used": 1.11,
+  "credits_by_warehouse_by_day": [
+    {
+      "warehouse_name": "ADHOC_WH",
+      "usage_day": "2026-07-13 00:00:00-07:00",
+      "credits_used": "0.000014444"
+    },
+    {
+      "warehouse_name": "TRANSFORM_WH",
+      "usage_day": "2026-07-08 00:00:00-07:00",
+      "credits_used": "0.100373890"
+    },
+    {
+      "warehouse_name": "TRANSFORM_WH",
+      "usage_day": "2026-07-09 00:00:00-07:00",
+      "credits_used": "0.712716665"
+    },
+    {
+      "warehouse_name": "TRANSFORM_WH",
+      "usage_day": "2026-07-10 00:00:00-07:00",
+      "credits_used": "0.051000554"
+    },
+    {
+      "warehouse_name": "TRANSFORM_WH",
+      "usage_day": "2026-07-12 00:00:00-07:00",
+      "credits_used": "0.175347224"
+    },
+    {
+      "warehouse_name": "TRANSFORM_WH",
+      "usage_day": "2026-07-13 00:00:00-07:00",
+      "credits_used": "0.066872223"
+    }
+  ],
+  "flagged_warehouses": [],
+  "cost_anomalies": [],
+  "top_queries_ranking": "credits_attributed_compute",
+  "top_queries": [
+    {
+      "query_id": "00000000-0000-0000-0000-000000000001",
+      "warehouse_name": "TRANSFORM_WH",
+      "credits_attributed_compute": 0.00237,
+      "execution_seconds": "0.415000",
+      "query_text_preview": "create or replace transient table DEMO_DB.FCT.fct_orders\n         as\n        (\n\nwith order_items as (\n  "
+    },
+    {
+      "query_id": "00000000-0000-0000-0000-000000000002",
+      "warehouse_name": "TRANSFORM_WH",
+      "credits_attributed_compute": 0.001725375,
+      "execution_seconds": "0.763000",
+      "query_text_preview": "create or replace transient table DEMO_DB.FCT.fct_orders\n         as\n        (\n\nwith order_items as (\n  "
+    },
+    {
+      "query_id": "00000000-0000-0000-0000-000000000003",
+      "warehouse_name": "TRANSFORM_WH",
+      "credits_attributed_compute": 0.0016251860785953178,
+      "execution_seconds": "0.652000",
+      "query_text_preview": "create or replace transient table DEMO_DB.INT.int_customer_orders\n         as\n        (\n\nwith customers "
+    }
+  ],
+  "errors": {}
+}
