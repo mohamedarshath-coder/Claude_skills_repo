@@ -2,10 +2,17 @@
 """
 databricks-cluster-audit helper script.
 
-Flags concrete, evidence-backed cost/idle risks in all-purpose (UI/API)
-clusters -- never job or pipeline clusters, whose lifecycle is managed
-by the job/pipeline framework itself, not by autotermination settings
-(flagging those would be a false positive).
+IMPORTANT SCOPE NOTE: this audits cluster CONFIGURATION, not observed
+usage. It has no visibility into whether a cluster was actually idle --
+only whether its settings would *permit* long idle billing. Findings
+should be reported as "this config permits X" claims, never "this
+cluster wasted money" claims -- that would overstate what the data
+actually shows.
+
+Flags concrete, evidence-backed configuration risks in all-purpose
+(UI/API) clusters -- never job or pipeline clusters, whose lifecycle is
+managed by the job/pipeline framework itself, not by autotermination
+settings (flagging those would be a false positive).
 
 Uses databricks-sdk's WorkspaceClient, which reads the connection from
 DATABRICKS_HOST/DATABRICKS_TOKEN env vars or a named profile in
@@ -72,10 +79,10 @@ def diagnose(cluster, idle_threshold, large_worker_threshold):
             })
         elif autoterm > idle_threshold:
             issues.append({
-                "issue": "high_autotermination",
-                "severity": "medium",
+                "issue": "permits_long_idle_billing",
+                "severity": "low",
                 "evidence": f"autotermination_minutes = {autoterm} ({autoterm / 60:.1f}h) on a {src}-created cluster",
-                "recommendation": f"Auto-suspend is set well above {idle_threshold} min. Consider lowering it to reduce idle-billing risk, unless long-running interactive sessions are the norm here.",
+                "recommendation": f"This is a config observation, not confirmed waste -- the cluster's auto-suspend is set well above {idle_threshold} min, which *permits* long idle billing if left running unattended. Confirm with whoever owns cluster policy whether this is a deliberate tradeoff (e.g. personal clusters kept alive across a workday) before treating it as something to fix.",
             })
 
     num_workers = cluster.num_workers

@@ -1,5 +1,5 @@
 {
-  "_fixture_note": "Anonymized real output. Cluster IDs randomized, user names genericized. Used by the fixture-test CI check: assertions are structural (JOB/PIPELINE clusters never flagged, issue schema present with evidence/recommendation), never on exact wording.",
+  "_fixture_note": "Anonymized real output. Cluster IDs randomized, user names genericized. Used by the fixture-test CI check: assertions are structural (JOB/PIPELINE clusters never flagged, issue schema present with evidence/recommendation, config-observation severity stays low/informational rather than overclaiming confirmed waste), never on exact wording.",
   "total_clusters": 4,
   "clusters_by_source": {
     "UI": 2,
@@ -19,10 +19,10 @@
       "autotermination_minutes": 4320,
       "issues": [
         {
-          "issue": "high_autotermination",
-          "severity": "medium",
+          "issue": "permits_long_idle_billing",
+          "severity": "low",
           "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
-          "recommendation": "Auto-suspend is set well above 120 min. Consider lowering it to reduce idle-billing risk, unless long-running interactive sessions are the norm here."
+          "recommendation": "This is a config observation, not confirmed waste -- the cluster's auto-suspend is set well above 120 min, which permits long idle billing if left running unattended. Confirm with whoever owns cluster policy whether this is a deliberate tradeoff (e.g. personal clusters kept alive across a workday) before treating it as something to fix."
         }
       ]
     },

@@ -7,7 +7,9 @@ loop-tier: on-demand
 
 ## Purpose
 
-Idle Databricks clusters are a classic hidden cost: someone spins up a personal or shared cluster, forgets about it, and it either runs indefinitely or auto-suspends so late that the idle time alone racks up real spend. This skill audits every cluster's actual configuration and flags concrete, evidence-backed risks — not a generic "review your clusters" nudge.
+Idle Databricks clusters are a classic hidden cost: someone spins up a personal or shared cluster, forgets about it, and it either runs indefinitely or auto-suspends so late that the idle time alone racks up real spend. This skill audits every cluster's actual **configuration** and flags concrete, evidence-backed observations — not a generic "review your clusters" nudge.
+
+**Scope note — this is a configuration audit, not a usage audit.** The skill has no visibility into whether a cluster was actually sitting idle; it only sees whether the *settings* would permit long idle billing. Findings must be reported as "this config permits X," never "this cluster wasted money" — the data doesn't support the stronger claim.
 
 ## When to use
 
@@ -18,8 +20,8 @@ Use this skill when asked about: Databricks cluster costs, idle clusters, cluste
 1. Confirm the Databricks connection: `DATABRICKS_HOST`/`DATABRICKS_TOKEN` env vars, or a named profile in `~/.databrickscfg` (pass via `--profile`). Configured locally by the user ahead of time — this skill never asks for or handles the token directly.
 2. Run `python {{SKILL_DIR}}/scripts/cluster_audit.py` (accepts `--idle-threshold-minutes N`, default 120, and `--large-worker-threshold N`, default 10, to adjust the fixed thresholds below).
 3. The script lists every cluster and flags:
-   - **No auto-termination** (high severity) — `autotermination_minutes` is 0 or unset on a UI/API-created cluster, meaning it will run indefinitely once started
-   - **High auto-termination** (medium) — set, but above the idle threshold (default 2 hours)
+   - **No auto-termination** (high severity) — `autotermination_minutes` is 0 or unset on a UI/API-created cluster, meaning it will run indefinitely once started. This one *is* a confirmed risk (no ceiling at all), not just a config observation.
+   - **Permits long idle billing** (low severity) — auto-suspend is set, but above the idle threshold (default 2 hours). This is a config observation, not confirmed waste — report it as "this permits long idle billing if left unattended," and note that a value repeated across multiple users likely reflects a deliberate cluster-policy default, not individual mistakes each user should fix separately.
    - **Large fixed-size cluster** (medium) — a fixed worker count above the threshold with no autoscale configured
    - **Currently running** (info) — actively costing compute right now, worth confirming it's expected
 4. **Job and Pipeline (DLT) clusters are never flagged for auto-termination.** Their lifecycle is controlled by the job/pipeline framework itself — `autotermination_minutes: 0` is *normal* for these, not a risk. Only `UI`/`API`-created (interactive) clusters are evaluated for that heuristic. Treating a job cluster's `0` as a finding would be a false positive.
@@ -40,7 +42,7 @@ Render as Markdown:
    |---|---|---|---|---|
    | `Jane's Personal Compute Cluster` | UI | No auto-termination | `autotermination_minutes = 0` | Set an autotermination value |
 
-3. **Pattern callout** — if the *same* issue appears on 2+ clusters (e.g. several personal clusters sharing one misconfigured default), say so explicitly — that's usually an org-wide cluster policy worth fixing once, not N individual clusters to fix separately.
+3. **Pattern callout** — if the *same* issue appears on 2+ clusters (e.g. several personal clusters sharing one identical auto-suspend value), say so explicitly, and frame it correctly: this is evidence of a **likely deliberate, shared cluster policy default**, not N independent mistakes. Recommend confirming with whoever owns cluster policy before treating it as something to change — never assert it's wrong just because it repeats.
 4. **Bottom line** — one bolded sentence: the single highest-severity issue to act on first, or "No cluster issues found."
 
 Always cite the actual cluster name, ID, and threshold values behind every flagged issue.
