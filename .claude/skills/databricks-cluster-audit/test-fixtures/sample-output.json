@@ -1,0 +1,69 @@
+{
+  "_fixture_note": "Anonymized real output. Cluster IDs randomized, user names genericized. Used by the fixture-test CI check: assertions are structural (JOB/PIPELINE clusters never flagged, issue schema present with evidence/recommendation), never on exact wording.",
+  "total_clusters": 4,
+  "clusters_by_source": {
+    "UI": 2,
+    "PIPELINE": 1,
+    "JOB": 1
+  },
+  "clusters_with_issues": 1,
+  "results": [
+    {
+      "cluster_id": "0000-000000-aaaaaaaa",
+      "cluster_name": "User A's Personal Compute Cluster",
+      "cluster_source": "UI",
+      "state": "TERMINATED",
+      "node_type_id": "Standard_DS3_v2",
+      "num_workers": 0,
+      "autoscale": null,
+      "autotermination_minutes": 4320,
+      "issues": [
+        {
+          "issue": "high_autotermination",
+          "severity": "medium",
+          "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+          "recommendation": "Auto-suspend is set well above 120 min. Consider lowering it to reduce idle-billing risk, unless long-running interactive sessions are the norm here."
+        }
+      ]
+    },
+    {
+      "cluster_id": "0000-000000-bbbbbbbb",
+      "cluster_name": "Shared Ingestion Cluster",
+      "cluster_source": "UI",
+      "state": "TERMINATED",
+      "node_type_id": "Standard_D4ds_v4",
+      "num_workers": null,
+      "autoscale": {
+        "min_workers": 2,
+        "max_workers": 2
+      },
+      "autotermination_minutes": 30,
+      "issues": []
+    },
+    {
+      "cluster_id": "0000-000000-cccccccc",
+      "cluster_name": "dlt-execution-00000000-0000-0000-0000-000000000000",
+      "cluster_source": "PIPELINE",
+      "state": "TERMINATED",
+      "node_type_id": "Standard_F8s",
+      "num_workers": null,
+      "autoscale": {
+        "min_workers": 1,
+        "max_workers": 5
+      },
+      "autotermination_minutes": 0,
+      "issues": []
+    },
+    {
+      "cluster_id": "0000-000000-dddddddd",
+      "cluster_name": "job-000000000000000-run-000000000000000-Job_cluster",
+      "cluster_source": "JOB",
+      "state": "TERMINATED",
+      "node_type_id": "Standard_D4ds_v4",
+      "num_workers": 8,
+      "autoscale": null,
+      "autotermination_minutes": 0,
+      "issues": []
+    }
+  ]
+}
