@@ -1,0 +1,51 @@
+---
+name: rebase-conflict-predictor
+description: Predicts which files will conflict if a feature branch is merged or rebased onto a target branch, without touching the working directory, index, or either branch. Use when asked whether a branch will conflict, to check merge/rebase readiness, or before starting a rebase on a long-lived branch.
+risk: read-only
+loop-tier: on-demand
+---
+
+## Purpose
+
+Discovering a merge conflict only at PR time, after a feature branch has drifted far from `main`, turns a small fix into an unpleasant rebase. This skill predicts conflicts *before* anyone attempts the merge — genuinely read-only, no trial checkout, no working-directory side effects.
+
+## When to use
+
+Use this skill when asked: whether a branch will conflict with another, to check merge/rebase readiness before starting work, or as a pre-flight check before rebasing a long-lived feature branch.
+
+## Steps
+
+1. Identify the **feature branch** and the **target branch** (default `main`) to check against. Both must exist as local refs (or be fetched first if only remote).
+2. Run `python {{SKILL_DIR}}/scripts/conflict_predictor.py --branch <feature-branch> --target <target-branch>` (accepts `--repo-path` if not run from the repo root).
+3. The script runs `git merge-tree --write-tree <target> <branch>` — a trial merge performed **entirely in-memory**. It writes a throwaway tree object (never checked out, never referenced by any branch, never touches the working directory or index) and exits `0` for a clean merge or `1` if conflicts exist.
+4. Parse the `CONFLICT (...)` lines from the output for the conflict type and affected file(s).
+5. Report clearly whether a conflict is predicted, and for which files — if none, say so plainly rather than padding the report.
+
+## Helper scripts
+
+- `{{SKILL_DIR}}/scripts/conflict_predictor.py` — wraps `git merge-tree --write-tree` (requires git ≥ 2.38; this repo verified against 2.53) and parses its output into structured JSON. No worktree, no checkout, no external dependencies beyond `git` on PATH — genuinely the least invasive skill in this repo, since it has no external system access and doesn't even touch the local working directory.
+
+## Output format
+
+Render as Markdown:
+
+1. **Summary line** — bolded: conflict predicted or not, between which two branches.
+2. **Conflicting files (table)** — only if `conflict_predicted` is true:
+
+   | File | Conflict type |
+   |---|---|
+   | `shared.txt` | content |
+
+3. **Bottom line** — one bolded sentence: "Safe to merge/rebase now" or "N file(s) will conflict — resolve these before rebasing," naming the files.
+
+## Verified live (not just fixture-tested)
+
+Tested against a real, deliberately-constructed scenario on throwaway branches (created and deleted in the same session, never merged): two branches diverging from a common base, each editing the same line of the same file differently. The script correctly predicted the conflict and named the exact file. A second branch with a genuinely non-overlapping change (appending a new line) was correctly predicted as a clean merge. In both cases, `git status` and the checked-out branch were confirmed unchanged after the script ran — proving the "no working-directory side effects" claim, not just asserting it.
+
+## Known untested paths (honest status, not hidden)
+
+Only tested against a single-file, single-line content conflict and a clean non-overlapping case. **Never tested against:** rename conflicts, add/add conflicts (both branches creating a new file at the same path independently), binary file conflicts, or a target/feature pair with many simultaneous conflicting files. The parsing regex (`CONFLICT \(type\): message`) is based on the one conflict message format actually observed (`content`) — other conflict types' exact message wording (and therefore whether the file-path extraction heuristic works on them) is unverified.
+
+## Loop tier
+
+**On-demand (Tier 1)**, and likely to stay there — there's no obvious scheduled/product-loop variant for this skill (predicting conflicts on-demand before a specific rebase is the natural usage pattern, not a periodic background check).

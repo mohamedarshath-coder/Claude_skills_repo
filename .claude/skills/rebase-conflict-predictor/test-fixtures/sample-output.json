@@ -1,0 +1,14 @@
+{
+  "_fixture_note": "ACTUAL output from a real live test: two throwaway branches diverging from a common base, both editing the same line of the same file differently. Verified git status and the checked-out branch were unchanged after the script ran. Demo branches deleted afterward. Used by the fixture-test CI check: assertions are structural, never on exact wording.",
+  "branch": "conflict-demo-branch-a",
+  "target": "conflict-demo-branch-b",
+  "conflict_predicted": true,
+  "conflict_count": 1,
+  "conflicts": [
+    {
+      "type": "content",
+      "message": "Merge conflict in tools/ci/_conflict_demo/shared.txt",
+      "file": "tools/ci/_conflict_demo/shared.txt"
+    }
+  ]
+}
