@@ -1,6 +1,6 @@
 ---
 name: databricks-cluster-audit
-description: Audits Databricks all-purpose clusters for idle-cost risk (missing/high auto-termination) and oversized fixed-size configurations, using real cluster config data. Use when asked about Databricks cluster costs, idle clusters, or cluster cost hotspots.
+description: Audits Databricks all-purpose cluster configuration for settings that permit idle billing (missing/high auto-termination) and fixed-size clusters that may be oversized. Reports configuration risk, not dollar cost -- no pricing/spend data is computed. Use when asked to review Databricks cluster configuration, idle-cost risk, or cluster policy.
 risk: read-only
 loop-tier: on-demand
 ---
@@ -13,7 +13,7 @@ Idle Databricks clusters are a classic hidden cost: someone spins up a personal 
 
 ## When to use
 
-Use this skill when asked about: Databricks cluster costs, idle clusters, cluster cost hotspots, or a cluster configuration audit.
+Use this skill when asked about: Databricks cluster configuration, idle-cost risk (config-level, not dollar figures), or a cluster policy/configuration audit. If the ask is specifically for actual dollar cost or spend figures, say clearly that this skill doesn't compute those — it audits settings, not billing data.
 
 ## Steps
 
@@ -46,6 +46,10 @@ Render as Markdown:
 4. **Bottom line** — one bolded sentence: the single highest-severity issue to act on first, or "No cluster issues found."
 
 Always cite the actual cluster name, ID, and threshold values behind every flagged issue.
+
+## Known untested paths (honest status, not hidden)
+
+Verified against a real workspace so far: `permits_long_idle_billing` and `currently_running`. **`no_autotermination` (the one genuinely high-severity, confirmed-risk finding in this skill) and `large_fixed_size_cluster` have never fired against real data** — every cluster seen so far has had *some* autotermination value and no oversized fixed-worker cluster has existed to trigger the size check. Both are covered structurally in `test-fixtures/sample-output.json` (hand-crafted, not from a live run), but until a real cluster matches either condition, treat those two code paths as logically sound but not field-proven.
 
 ## Loop tier & future promotion
 
