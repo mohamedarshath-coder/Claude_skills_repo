@@ -52,6 +52,16 @@ Render as Markdown, grouped by job:
 
 Always cite the actual run ID, job name, and error text pulled by the script — never a vague "something failed" without evidence.
 
+## Verification status per branch (honest status, not hidden)
+
+| Path | Live workspace | Unit-tested |
+|---|---|---|
+| Single-task failure resolution + real trace | ✅ (5 real failed runs, masked-dbt-error finding) | ✅ |
+| **Multi-task resolution to the specific failing task** | ❌ every real failure so far was single-task | ✅ `test-fixtures/test_triage.py` (1-of-3 failed, 2-of-3 failed, output fetched only for failed task run_ids) |
+| ANSI stripping / repetition collapse / tail cap | ✅ (real ANSI-laden dbt traces) | ✅ (incl. 50x-repeat collapse, 200-line cap, suppressed-count honesty) |
+
+The multi-task path is covered by unit tests running the real `summarize_run()` against constructed run objects with a stub client; live confirmation awaits a real multi-task job failure occurring naturally.
+
 ## Loop tier & future promotion
 
 Currently **Tier 1 (on-demand)**, per repo rule (`.claude/rules/loop-engineering.md`) that no skill starts above Tier 1.
