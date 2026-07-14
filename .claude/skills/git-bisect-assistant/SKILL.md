@@ -47,7 +47,21 @@ Render as Markdown:
 
 ## Verified live (not just fixture-tested)
 
-This skill was tested against a real, deliberately-constructed 5-commit history on a throwaway branch (created and deleted in the same session, never merged): 2 correct commits, 1 commit that flipped `+` to `-` in an `add()` function, 2 unrelated follow-up commits. The script correctly converged in 2 steps and identified the exact bug-introducing commit — not the unrelated ones before or after it. The demo branch was deleted after verification; `test-fixtures/sample-output.json` is the anonymized real output from that run.
+Three real scenarios, all on throwaway branches (created and deleted in the same session, never merged):
+
+1. **Linear history** — 5 commits, bug introduced in commit 3, two unrelated commits after. Converged in 2 steps to the exact culprit. `test-fixtures/sample-output.json` is the real output from this run.
+2. **Merge-commit history** — the bug introduced on a *side branch* and arriving on the mainline via a `--no-ff` merge, with unrelated commits on both sides. Correctly converged to the side-branch commit itself — not the merge commit, not the unrelated mainline commit. Bisect through genuinely branched history is proven.
+3. **Non-convergence / cap path** — run with a deliberately too-low `--max-steps 1`: correctly reported `converged: false` with the explicit cap-hit error and exit code 1, and did **not** fabricate a culprit. (Note: the cap message attributes non-convergence to a likely-flaky test command; when the cap is simply set too low for the range, that's the other possible cause — the message names the more dangerous one.)
+
+## Verification status (honest, per scenario)
+
+| Scenario | Live-tested |
+|---|---|
+| Linear history, deterministic test | ✅ |
+| Merge commits in the bisect range | ✅ |
+| Cap-hit / non-convergence path | ✅ |
+| Genuinely flaky (non-deterministic) test command | ❌ — the cap protects against it, but a real flaky test has never been run; a flaky test can also cause bisect to converge on a *wrong* commit rather than hit the cap, which no cap can detect |
+| Test command with external side effects | ❌ — the worktree isolates git state only, not databases/networks the test touches |
 
 ## Loop tier & safety limits
 
