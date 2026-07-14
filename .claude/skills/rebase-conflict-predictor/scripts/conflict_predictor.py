@@ -23,11 +23,30 @@ import subprocess
 import sys
 
 CONFLICT_LINE_RE = re.compile(r"^CONFLICT \(([^)]+)\): (.*)$")
-PATH_HINT_RE = re.compile(r"\bin ([^\s].*)$")
+# The common format: "Merge conflict in <path>" (content, add/add, ...).
+MERGE_CONFLICT_IN_RE = re.compile(r"^Merge conflict in (.+)$")
+# Rename-style messages lead with the original path:
+# "<path> renamed to <a> in <branch> and to <b> in <branch>." (rename/rename)
+# "<path> renamed to <a> in <branch>, but deleted in <branch>."  (rename/delete)
+RENAME_LEAD_PATH_RE = re.compile(r"^(\S+) renamed ")
 
 
 def run(cmd, cwd):
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+
+
+def extract_file(message):
+    """Per-format path extraction. Returns None when the format isn't
+    recognized -- an honest None beats a garbled guess (the original
+    generic 'in <path>' heuristic produced garbage on rename/rename
+    messages, whose format is entirely different)."""
+    m = MERGE_CONFLICT_IN_RE.match(message)
+    if m:
+        return m.group(1)
+    m = RENAME_LEAD_PATH_RE.match(message)
+    if m:
+        return m.group(1)
+    return None
 
 
 def parse_conflicts(stdout):
@@ -37,11 +56,10 @@ def parse_conflicts(stdout):
         if not m:
             continue
         conflict_type, message = m.group(1), m.group(2)
-        path_match = PATH_HINT_RE.search(message)
         conflicts.append({
             "type": conflict_type,
             "message": message,
-            "file": path_match.group(1) if path_match else None,
+            "file": extract_file(message),
         })
     return conflicts
 

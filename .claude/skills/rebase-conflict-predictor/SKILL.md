@@ -42,9 +42,17 @@ Render as Markdown:
 
 Tested against a real, deliberately-constructed scenario on throwaway branches (created and deleted in the same session, never merged): two branches diverging from a common base, each editing the same line of the same file differently. The script correctly predicted the conflict and named the exact file. A second branch with a genuinely non-overlapping change (appending a new line) was correctly predicted as a clean merge. In both cases, `git status` and the checked-out branch were confirmed unchanged after the script ran — proving the "no working-directory side effects" claim, not just asserting it.
 
-## Known untested paths (honest status, not hidden)
+## Verification status per conflict type (honest status, not hidden)
 
-Only tested against a single-file, single-line content conflict and a clean non-overlapping case. **Never tested against:** rename conflicts, add/add conflicts (both branches creating a new file at the same path independently), binary file conflicts, or a target/feature pair with many simultaneous conflicting files. The parsing regex (`CONFLICT \(type\): message`) is based on the one conflict message format actually observed (`content`) — other conflict types' exact message wording (and therefore whether the file-path extraction heuristic works on them) is unverified.
+| Conflict type | Live-tested | Notes |
+|---|---|---|
+| `content` | ✅ | Original verification |
+| `add/add` (both branches create the same new path) | ✅ | Gap-closing pass |
+| `rename/rename` (both branches rename the same file differently) | ✅ | **Found a real bug**: the original generic `in <path>` extraction produced garbage on this format ("conflict-gap-b and to .../renamed-by-a.txt in..."). Fixed with per-format extraction — rename messages resolve to the *original* path. Pinned by `test-fixtures/test_parse.py` |
+| `rename/delete` | ✅ | File resolves to original path |
+| 3 simultaneous conflicts in one prediction | ✅ | All parsed distinctly |
+| Binary-file conflicts | ❌ | Never constructed; message format unobserved |
+| Unrecognized future formats | unit-tested | `file: null` (honest) rather than a garbled guess |
 
 ## Loop tier
 
