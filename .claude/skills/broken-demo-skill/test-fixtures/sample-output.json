@@ -1,0 +1,10 @@
+{
+  "_fixture_note": "Deliberately broken fixture for testing fixture_test.py -- the finding below is missing its 'evidence' field on purpose.",
+  "results": [
+    {
+      "issue": "something_bad",
+      "severity": "high",
+      "recommendation": "fix it, but there's no evidence backing this claim"
+    }
+  ]
+}
