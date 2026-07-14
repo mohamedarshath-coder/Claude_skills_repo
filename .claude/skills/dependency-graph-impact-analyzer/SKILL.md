@@ -47,9 +47,11 @@ Run against this actual repo, not a synthetic example, for three distinct real c
 - `.claude/skills/snowflake-cost-audit/scripts/cost_audit.py` (a skill's own file) → correctly returned **single-skill scope**, only `snowflake-cost-audit`
 - `Claude-Skills-Proposal-Expanded.md` (a top-level planning doc) → correctly returned **zero impact**
 
-## Known untested paths (honest status, not hidden)
+## Known limitations (honest status, not hidden)
 
-The **cross-skill** branch (a skill's file textually referenced by name/path inside a *different* skill's files) has never actually fired — no real cross-skill reference currently exists in this repo, since every skill's helper script only calls its own sibling files (e.g. `scheduled_run.py` calling `cost_audit.py`, both inside `snowflake-cost-audit/`). The code path is implemented and logically sound but unverified against a genuine positive case. The text-reference scan is also a simple substring match, not a real import/call-graph parser — it would miss an indirect reference (e.g. a path built up from string concatenation or an env var) and could theoretically false-positive on a coincidental substring match.
+The **cross-skill branch is now live-verified against a genuine case**: after `unified-cost-optimizer` was built (it calls `snowflake-cost-audit`'s and `databricks-cluster-audit`'s scripts by path as subprocesses), this skill correctly returned `cross-skill` scope for changes to either script, naming `unified-cost-optimizer` as a dependent — a real runtime dependency, correctly detected.
+
+That same verification also demonstrated the substring-match limitation in practice: a skill whose *documentation* merely mentions another skill's script path (e.g. a `SKILL.md` citing `cost_audit.py` as a test example) is flagged identically to a skill that actually *executes* it. By this skill's stated definition (textual reference) that's a true positive, but readers should know the scan **cannot distinguish a runtime dependency from a doc mention** — it's a substring match, not an import/call-graph parser. It would likewise miss an indirect reference (a path built via string concatenation or an env var).
 
 ## Loop tier
 
