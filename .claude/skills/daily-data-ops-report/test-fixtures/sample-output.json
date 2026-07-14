@@ -23,9 +23,9 @@
   "cluster_risks": {
     "clusters_with_issues": 3,
     "issues": [
-      {"cluster": "User A's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"},
-      {"cluster": "User B's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"},
-      {"cluster": "User C's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low"}
+      {"cluster": "User A's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."},
+      {"cluster": "User B's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."},
+      {"cluster": "User C's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."}
     ]
   },
   "freshness": [

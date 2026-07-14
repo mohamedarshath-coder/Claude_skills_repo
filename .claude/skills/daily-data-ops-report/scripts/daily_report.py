@@ -101,9 +101,14 @@ def main():
     clusters, err = run_script(SCRIPTS["cluster_audit"], db_args)
     if err:
         errors["cluster_risks"] = err
+    # Carry evidence and recommendation through from the source skill --
+    # a finding without evidence violates the repo's own reporting rule
+    # (and fixture-test CI rejects it; it did, on this skill's first
+    # fixture, which is how this comment got here).
     report["cluster_risks"] = {
         "clusters_with_issues": clusters["clusters_with_issues"],
-        "issues": [{"cluster": r["cluster_name"], "issue": i["issue"], "severity": i["severity"]}
+        "issues": [{"cluster": r["cluster_name"], "issue": i["issue"], "severity": i["severity"],
+                    "evidence": i["evidence"], "recommendation": i["recommendation"]}
                    for r in clusters["results"] for i in r["issues"]],
     } if clusters else None
 
