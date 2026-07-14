@@ -1,0 +1,37 @@
+{
+  "_fixture_note": "Mix of one anonymized real clean query and one synthetic query with issues (to exercise the full issue schema, since the real account currently has no flagged queries). Used by the fixture-test CI check: assertions are structural (issue schema present, severity/evidence/recommendation fields populated), never on exact wording.",
+  "window_days": 14,
+  "analyzed_query_count": 2,
+  "queries_with_issues": 1,
+  "results": [
+    {
+      "query_id": "00000000-0000-0000-0000-000000000001",
+      "warehouse_name": "TRANSFORM_WH",
+      "warehouse_size": "X-Small",
+      "query_text_preview": "create or replace transient table DEMO_DB.MART.mart_customer_ltv\n         as\n        (with fct as (\n    select * from DEMO_DB.FCT.fct_customers\n),\nltv as (\n    select\n ",
+      "execution_ms": 2255,
+      "issues": []
+    },
+    {
+      "query_id": "00000000-0000-0000-0000-000000000002",
+      "warehouse_name": "TRANSFORM_WH",
+      "warehouse_size": "Small",
+      "query_text_preview": "select * from DEMO_DB.FCT.fct_orders o join DEMO_DB.FCT.fct_order_items i on o.order_id = i.order_id",
+      "execution_ms": 184320,
+      "issues": [
+        {
+          "issue": "spilling_to_remote_storage",
+          "severity": "high",
+          "evidence": "52428800 bytes spilled to remote storage",
+          "recommendation": "Warehouse is undersized for this query's working set -- increase warehouse size, or reduce the data volume processed (filter earlier, avoid a full unfiltered join)."
+        },
+        {
+          "issue": "poor_partition_pruning",
+          "severity": "medium",
+          "evidence": "scanned 18320 of 22410 partitions (82%)",
+          "recommendation": "Query is scanning most of the table. Check whether the WHERE clause filters on the table's clustering key, or consider re-clustering on the columns this query filters by."
+        }
+      ]
+    }
+  ]
+}
