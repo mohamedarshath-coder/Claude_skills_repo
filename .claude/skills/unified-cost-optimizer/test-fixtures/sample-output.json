@@ -1,0 +1,38 @@
+{
+  "_fixture_note": "tier2_configuration_risks_unquantified is REAL, anonymized output (the same 3-cluster shared-policy pattern found by databricks-cluster-audit directly). tier1_quantified_savings_opportunities is SYNTHETIC -- no real cost anomaly has occurred in the test account during this project's testing window, so this entry is hand-crafted purely to exercise the schema, not a field-proven result. Used by the fixture-test CI check: assertions are structural, never on exact wording.",
+  "tier1_quantified_savings_opportunities": [
+    {
+      "source": "snowflake",
+      "finding": "cost_anomaly",
+      "target": "TRANSFORM_WH",
+      "quantified_credits": 4.2,
+      "evidence": "4.2 credits on 2026-07-14, +282% vs trailing avg 1.1"
+    }
+  ],
+  "tier2_configuration_risks_unquantified": [
+    {
+      "source": "databricks",
+      "finding": "permits_long_idle_billing",
+      "target": "User A's Personal Compute Cluster",
+      "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+      "severity": "low"
+    },
+    {
+      "source": "databricks",
+      "finding": "permits_long_idle_billing",
+      "target": "User B's Personal Compute Cluster",
+      "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+      "severity": "low"
+    },
+    {
+      "source": "databricks",
+      "finding": "permits_long_idle_billing",
+      "target": "User C's Personal Compute Cluster",
+      "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+      "severity": "low"
+    }
+  ],
+  "source_errors": {},
+  "quantified_total_credits": 4.2,
+  "unquantified_finding_count": 3
+}
