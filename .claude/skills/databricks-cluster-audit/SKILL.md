@@ -47,9 +47,17 @@ Render as Markdown:
 
 Always cite the actual cluster name, ID, and threshold values behind every flagged issue.
 
-## Known untested paths (honest status, not hidden)
+## Verification status per branch (honest status, not hidden)
 
-Verified against a real workspace so far: `permits_long_idle_billing` and `currently_running`. **`no_autotermination` (the one genuinely high-severity, confirmed-risk finding in this skill) and `large_fixed_size_cluster` have never fired against real data** — every cluster seen so far has had *some* autotermination value and no oversized fixed-worker cluster has existed to trigger the size check. Both are covered structurally in `test-fixtures/sample-output.json` (hand-crafted, not from a live run), but until a real cluster matches either condition, treat those two code paths as logically sound but not field-proven.
+| Branch | Live workspace | Unit-tested |
+|---|---|---|
+| `permits_long_idle_billing` | ✅ (3 real clusters) | ✅ |
+| `currently_running` | ✅ (1 real cluster) | ✅ |
+| `no_autotermination` | ❌ never occurred naturally | ✅ `test-fixtures/test_diagnose.py` |
+| `large_fixed_size_cluster` | ❌ never occurred naturally | ✅ `test-fixtures/test_diagnose.py` |
+| JOB/PIPELINE never-flag guarantee | ✅ (4 real clusters) | ✅ |
+
+The two branches without live confirmation are now covered by unit tests that run the real `diagnose()` function against constructed cluster objects (including boundary cases: exactly-at-threshold worker count, `autoterm=None` vs `0`, and the autoscale exemption). Deliberately **not** verified by creating real clusters — that would be a write operation with real compute cost in a shared company workspace, out of scope for a read-only skill's verification. Live confirmation for those two awaits a naturally occurring case.
 
 ## Loop tier & future promotion
 
