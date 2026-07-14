@@ -72,6 +72,17 @@ Render the report as Markdown with these sections, in this order. Use tables whe
 
 Always cite the actual numbers pulled by the script (credits, seconds, query IDs, percentages) — never a vague qualitative claim without the evidence behind it.
 
+## Verification status per branch (honest status, not hidden)
+
+| Path | Live account | Unit-tested |
+|---|---|---|
+| Credits/config/top-queries reporting, clean day | ✅ (multiple real runs) | ✅ |
+| `cost_anomalies` positive detection | ❌ spend has been low/stable; the earlier "FINDING" demo was a hand-crafted log line bypassing the function | ✅ `test-fixtures/test_cost_audit.py` (incl. exact-50%-threshold boundary, single-day skip, per-warehouse independence, zero-usage divide-by-zero guard) |
+| `possibly_oversized` warehouse flag | ❌ every real warehouse is X-Small | ✅ (2X-LARGE + 3s queries fires; busy LARGE and X-Small correctly don't) |
+| `post_to_slack` notification | ❌ no Slack webhook configured yet (Track 7) | ✅ against a **real local HTTP listener** — actual POST sent, payload and Content-Type asserted; silent no-op when unset also verified |
+| Scheduled run: healthy / kill-switch / finding log paths | ✅ (digest.log entries) | — |
+| Unattended Task Scheduler trigger at 07:00 | ❌ unconfirmed — manual verification on the real desktop still pending | — |
+
 ## Loop tier: promoted to Tier 3 (scheduled, notify-only)
 
 This skill has two invocation modes, both backed by the same `cost_audit.py` logic:
