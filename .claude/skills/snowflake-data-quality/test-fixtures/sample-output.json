@@ -1,0 +1,41 @@
+{
+  "_fixture_note": "ACTUAL output from the first live run against a real 6000-row table (names kept generic). Notable: the duplicates check PASSED with exactly 6000/6000 distinct -- disproving the ~113 duplicates suggested by snowflake-schema-explorer's approximate profile (HyperLogLog under-estimation), i.e. this skill's first real result was preventing a false alarm. DATE_OF_BIRTH shows the historical-column exemption (measured, not judged) added after the first version absurdly flagged it stale at 9328 days. Used by fixture-test CI: structural assertions only.",
+  "schema": "RAW",
+  "table": "RAW_CUSTOMERS",
+  "duplicates": {
+    "key_column": "CUSTOMER_ID",
+    "total_rows": 6000,
+    "non_null_keys": 6000,
+    "distinct_keys": 6000,
+    "duplicate_key_count": 0,
+    "excess_rows_from_duplicates": 0,
+    "worst_key_occurrences": null,
+    "passed": true
+  },
+  "nulls": {
+    "total_rows": 6000,
+    "columns_with_nulls": []
+  },
+  "freshness": {
+    "date_columns_found": 3,
+    "threshold_days": 7,
+    "columns": [
+      {
+        "column": "DATE_OF_BIRTH",
+        "days_since_latest_value": 9328,
+        "stale": null,
+        "verdict_note": "measured only -- historical column (a birth date is supposed to be old)"
+      },
+      {
+        "column": "REGISTRATION_DATE",
+        "days_since_latest_value": 926,
+        "stale": true
+      },
+      {
+        "column": "LAST_LOGIN_DATE",
+        "days_since_latest_value": 560,
+        "stale": true
+      }
+    ]
+  }
+}
