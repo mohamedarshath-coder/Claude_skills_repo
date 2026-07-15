@@ -1,8 +1,8 @@
 {
-  "_fixture_note": "Mix of one anonymized real clean query and one synthetic query with issues (to exercise the full issue schema, since the real account currently has no flagged queries). Used by the fixture-test CI check: assertions are structural (issue schema present, severity/evidence/recommendation fields populated), never on exact wording.",
+  "_fixture_note": "Three entries: one anonymized real clean query, one REAL local-storage-spill result (a deliberate 12M-row cross join actually run in the account, byte count genuine), and one synthetic remote-storage-spill + poor-pruning query (to exercise those two still-unfired branches' schema). Used by the fixture-test CI check: assertions are structural (issue schema present, severity/evidence/recommendation fields populated), never on exact wording.",
   "window_days": 14,
-  "analyzed_query_count": 2,
-  "queries_with_issues": 1,
+  "analyzed_query_count": 3,
+  "queries_with_issues": 2,
   "results": [
     {
       "query_id": "00000000-0000-0000-0000-000000000001",
@@ -11,6 +11,21 @@
       "query_text_preview": "create or replace transient table DEMO_DB.MART.mart_customer_ltv\n         as\n        (with fct as (\n    select * from DEMO_DB.FCT.fct_customers\n),\nltv as (\n    select\n ",
       "execution_ms": 2255,
       "issues": []
+    },
+    {
+      "query_id": "01c5b847-000d-d88e-0000-fa19000a2146",
+      "warehouse_name": "COMPUTE_WH",
+      "warehouse_size": "X-Small",
+      "query_text_preview": "SELECT a.customer_id, b.product_id, COUNT(*) AS cnt\nFROM RAW.RAW_CUSTOMERS a\nCROSS JOIN RAW.RAW_PRODUCTS b\nGROUP BY a.customer_id, b.product_id\nORDER BY cnt DESC;",
+      "execution_ms": 1456,
+      "issues": [
+        {
+          "issue": "spilling_to_local_storage",
+          "severity": "medium",
+          "evidence": "26017792 bytes spilled to local disk",
+          "recommendation": "Query needs more memory than the warehouse provides. Consider a larger warehouse size, or reduce intermediate result size (push filters/aggregations earlier)."
+        }
+      ]
     },
     {
       "query_id": "00000000-0000-0000-0000-000000000002",

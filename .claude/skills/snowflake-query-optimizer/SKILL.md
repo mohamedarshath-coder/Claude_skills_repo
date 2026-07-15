@@ -52,13 +52,14 @@ Always cite the actual numbers (bytes spilled, partition counts, ms queued) behi
 | Branch | Live account | Unit-tested |
 |---|---|---|
 | Clean query → zero issues (no false positives) | ✅ (real dbt queries) | ✅ |
-| `spilling_to_remote_storage` / `spilling_to_local_storage` | ❌ never occurred naturally | ✅ `test-fixtures/test_diagnose.py` |
+| `spilling_to_local_storage` | ✅ **live-fired** — a deliberate 12M-row cross join (`RAW_CUSTOMERS` × `RAW_PRODUCTS`, `GROUP BY`/`ORDER BY`) on an X-Small warehouse spilled 26,017,792 bytes to local disk, correctly flagged with exact evidence | ✅ `test-fixtures/test_diagnose.py` |
+| `spilling_to_remote_storage` | ❌ never occurred naturally — the same stress query only tipped into *local* spill (X-Small handled the 12M rows almost entirely in memory, 1.5s runtime); a remote spill needs a larger/longer-running working set | ✅ |
 | `poor_partition_pruning` | ❌ never occurred naturally | ✅ (incl. exact-threshold boundaries) |
 | `warehouse_queueing` | ❌ never occurred naturally | ✅ |
 | `cold_start_provisioning` | ❌ never occurred naturally | ✅ |
 | Attribution→duration ranking fallback | ❌ role can read attribution, so never fired | structurally implemented, untested |
 
-Every query in the real test account has been clean (small demo workloads on an X-Small warehouse), so the positive-detection branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once. Deliberately **not** verified by forcing a real spill: that means running a deliberately huge cartesian join burning real credits, and `ACCOUNT_USAGE` latency (~45 min) prevents same-session verification anyway.
+The `spilling_to_local_storage` branch is now genuinely live-verified, not just unit-tested — a real, deliberately-constructed stress query (a cross join most people would write by accident, not on purpose) triggered it with exact byte-level evidence matching the script's own output. The remaining branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once.
 
 ## Loop tier & future promotion
 
