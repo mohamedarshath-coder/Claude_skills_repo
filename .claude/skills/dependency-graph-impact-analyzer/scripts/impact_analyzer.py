@@ -105,6 +105,7 @@ def main():
     skill_names = list_skill_names(repo_path)
 
     impacted = []
+    warning = None
 
     if is_global_path(changed_rel):
         scope = "global"
@@ -125,6 +126,16 @@ def main():
                     impacted.append({"skill": s, "reason": f"references '{os.path.basename(changed_rel)}' or its path directly"})
         else:
             scope = "none"
+            # A path shaped like .claude/skills/<name>/... whose <name> isn't a
+            # real skill folder is far more likely a typo (or a renamed/deleted
+            # skill) than a deliberately unrelated file -- a bare "none" would
+            # read as reassuring when it should read as suspicious.
+            if changed_rel.startswith(".claude/skills/"):
+                claimed = changed_rel[len(".claude/skills/"):].split("/", 1)[0]
+                warning = (
+                    f"path looks like a skill file, but no skill named '{claimed}' exists on disk -- "
+                    f"check for a typo or a renamed/deleted skill before trusting this zero-impact result"
+                )
 
     output = {
         "changed_file": changed_rel,
@@ -132,6 +143,8 @@ def main():
         "impacted_skill_count": len(impacted),
         "impacted_skills": impacted,
     }
+    if warning:
+        output["warning"] = warning
     print(json.dumps(output, indent=2))
 
 
