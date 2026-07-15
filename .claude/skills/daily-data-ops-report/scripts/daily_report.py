@@ -3,12 +3,13 @@
 daily-data-ops-report helper script.
 
 The "morning summary" from the original proposal: one command aggregating
-four sibling skills across both platforms --
+five sibling skills across both platforms --
 
   1. Failed Databricks jobs (last day)     <- databricks-job-triage
   2. Snowflake cost + anomalies (last day) <- snowflake-cost-audit
   3. Databricks cluster config risks       <- databricks-cluster-audit
   4. Freshness of watched tables           <- snowflake-data-quality
+  5. Snowflake access-control risks        <- snowflake-role-audit
 
 Like unified-cost-optimizer, this genuinely CALLS the sibling skills'
 scripts (subprocess) rather than reimplementing them -- fixes there flow
@@ -40,6 +41,7 @@ SCRIPTS = {
     "cost_audit": os.path.join(SKILLS_ROOT, "snowflake-cost-audit", "scripts", "cost_audit.py"),
     "cluster_audit": os.path.join(SKILLS_ROOT, "databricks-cluster-audit", "scripts", "cluster_audit.py"),
     "data_quality": os.path.join(SKILLS_ROOT, "snowflake-data-quality", "scripts", "data_quality.py"),
+    "role_audit": os.path.join(SKILLS_ROOT, "snowflake-role-audit", "scripts", "role_audit.py"),
 }
 
 
@@ -135,6 +137,20 @@ def main():
     report["freshness"] = freshness_results if args.watch_table else {
         "note": "no --watch-table targets configured"}
 
+    # 5. Snowflake access-control risks
+    # Role/grant config barely changes day to day, so this section will
+    # usually repeat yesterday's findings -- same as cluster_risks. That's
+    # intentional: an unacknowledged standing risk re-appearing every
+    # morning is the point, not noise. A future scheduled (Tier 3) run
+    # would diff against the previous day and notify only on NEW findings.
+    access, err = run_script(SCRIPTS["role_audit"], ["--connection", args.snowflake_connection])
+    if err:
+        errors["access_risks"] = err
+    report["access_risks"] = {
+        "finding_count": access["finding_count"],
+        "findings": access["findings"],
+    } if access else None
+
     # Overall verdict: quiet-when-healthy signal for a future scheduled run
     findings = 0
     if report.get("failed_jobs"):
@@ -145,6 +161,8 @@ def main():
         findings += report["cluster_risks"]["clusters_with_issues"]
     if isinstance(report.get("freshness"), list):
         findings += sum(len(t["stale_columns"]) for t in report["freshness"])
+    if report.get("access_risks"):
+        findings += report["access_risks"]["finding_count"]
 
     report["errors"] = errors
     report["total_findings"] = findings

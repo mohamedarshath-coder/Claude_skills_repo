@@ -1,5 +1,5 @@
 {
-  "_fixture_note": "ACTUAL output of the first live run (names/IDs kept generic where user-identifying). Historic detail: this run produced the first-ever live firing of snowflake-cost-audit's anomaly detector -- the +96.6% spike was caused by this project's own testing queries that day. Freshness staleness is true (static demo data). Used by fixture-test CI: structural assertions only.",
+  "_fixture_note": "ACTUAL output of the first live run (names/IDs kept generic where user-identifying). Historic detail: this run produced the first-ever live firing of snowflake-cost-audit's anomaly detector -- the +96.6% spike was caused by this project's own testing queries that day. Freshness staleness is true (static demo data). Used by fixture-test CI: structural assertions only. UPDATED after the fifth section (access_risks via snowflake-role-audit) was wired in: this file is again the ACTUAL output of a real combined run -- 11 findings across cluster/freshness/access sections, zero errors. The 6 access findings are genuine (single-user account holding ACCOUNTADMIN+ORGADMIN directly, privileged default role, real PUBLIC grants).",
   "window_days": 1,
   "failed_jobs": {
     "failed_run_count": 0,
@@ -7,38 +7,103 @@
     "runs": []
   },
   "snowflake_cost": {
-    "total_warehouse_credits_used": 0.76,
-    "cost_anomalies": [
-      {
-        "warehouse": "TRANSFORM_WH",
-        "latest_day": "2026-07-14 00:00:00-07:00",
-        "latest_credits": 0.352,
-        "trailing_avg_credits": 0.179,
-        "pct_increase": 96.6
-      }
-    ],
+    "total_warehouse_credits_used": 0.9,
+    "cost_anomalies": [],
     "flagged_warehouses": [],
     "scope_note": "Totals cover user-managed warehouses only (WAREHOUSE_METERING_HISTORY). Serverless features (tasks, Snowpipe, etc.) bill separately and are not included."
   },
   "cluster_risks": {
     "clusters_with_issues": 3,
     "issues": [
-      {"cluster": "User A's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."},
-      {"cluster": "User B's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."},
-      {"cluster": "User C's Personal Compute Cluster", "issue": "permits_long_idle_billing", "severity": "low", "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster", "recommendation": "Config observation, not confirmed waste -- confirm with cluster-policy owner whether the long auto-suspend is deliberate before treating it as something to fix."}
+      {
+        "cluster": "Adhithya.Aravind's Personal Compute Cluster",
+        "issue": "permits_long_idle_billing",
+        "severity": "low",
+        "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+        "recommendation": "This is a config observation, not confirmed waste -- the cluster's auto-suspend is set well above 120 min, which *permits* long idle billing if left running unattended. Confirm with whoever owns cluster policy whether this is a deliberate tradeoff (e.g. personal clusters kept alive across a workday) before treating it as something to fix."
+      },
+      {
+        "cluster": "jaisonsamuel.d's Personal Compute Cluster",
+        "issue": "permits_long_idle_billing",
+        "severity": "low",
+        "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+        "recommendation": "This is a config observation, not confirmed waste -- the cluster's auto-suspend is set well above 120 min, which *permits* long idle billing if left running unattended. Confirm with whoever owns cluster policy whether this is a deliberate tradeoff (e.g. personal clusters kept alive across a workday) before treating it as something to fix."
+      },
+      {
+        "cluster": "Mohamed.Arshath's Personal Compute Cluster",
+        "issue": "permits_long_idle_billing",
+        "severity": "low",
+        "evidence": "autotermination_minutes = 4320 (72.0h) on a UI-created cluster",
+        "recommendation": "This is a config observation, not confirmed waste -- the cluster's auto-suspend is set well above 120 min, which *permits* long idle billing if left running unattended. Confirm with whoever owns cluster policy whether this is a deliberate tradeoff (e.g. personal clusters kept alive across a workday) before treating it as something to fix."
+      }
     ]
   },
   "freshness": [
     {
-      "table": "RAW.RAW_ORDERS",
+      "table": "RAW.RAW_CUSTOMERS",
       "stale_columns": [
-        {"column": "ORDER_DATE", "days_since_latest_value": 560, "stale": true},
-        {"column": "UPDATED_AT", "days_since_latest_value": 560, "stale": true}
+        {
+          "column": "REGISTRATION_DATE",
+          "days_since_latest_value": 927,
+          "stale": true
+        },
+        {
+          "column": "LAST_LOGIN_DATE",
+          "days_since_latest_value": 561,
+          "stale": true
+        }
       ],
       "fresh_columns_count": 0
     }
   ],
+  "access_risks": {
+    "finding_count": 6,
+    "findings": [
+      {
+        "issue": "privileged_role_granted_to_user",
+        "severity": "high",
+        "target": "ARSHATH",
+        "evidence": "role 'ACCOUNTADMIN' directly granted (granted_by=SYSTEM, on 2026-06-24 22:01:49.349000-07:00)",
+        "recommendation": "Confirm with whoever owns access policy whether this user needs standing access to this role, or whether it should be granted only when needed (e.g. via a lower-privileged default role with explicit role-switching)."
+      },
+      {
+        "issue": "privileged_role_granted_to_user",
+        "severity": "high",
+        "target": "ARSHATH",
+        "evidence": "role 'ORGADMIN' directly granted (granted_by=SYSTEM, on 2026-06-24 22:01:52.693000-07:00)",
+        "recommendation": "Confirm with whoever owns access policy whether this user needs standing access to this role, or whether it should be granted only when needed (e.g. via a lower-privileged default role with explicit role-switching)."
+      },
+      {
+        "issue": "default_role_is_privileged",
+        "severity": "high",
+        "target": "ARSHATH",
+        "evidence": "default_role = 'ACCOUNTADMIN' (last login: 2026-07-15 03:27:18.113000-07:00)",
+        "recommendation": "Every session for this user starts with this privileged role already active. Consider setting a lower-privileged default role and requiring an explicit USE ROLE to elevate, unless this is a deliberate choice for a small/trusted team."
+      },
+      {
+        "issue": "public_role_has_ownership_grant",
+        "severity": "medium",
+        "target": "USER$ARSHATH.PUBLIC",
+        "evidence": "PUBLIC role holds OWNERSHIP on SCHEMA 'USER$ARSHATH.PUBLIC'",
+        "recommendation": "OWNERSHIP granted to PUBLIC means every user in the account can manage this object. Confirm with the account owner whether this is intentional (e.g. a shared sandbox schema) or a default that should be reassigned to a specific role."
+      },
+      {
+        "issue": "public_role_has_ownership_grant",
+        "severity": "medium",
+        "target": "INSIGHTOPS_DB.PUBLIC",
+        "evidence": "PUBLIC role holds OWNERSHIP on SCHEMA 'INSIGHTOPS_DB.PUBLIC'",
+        "recommendation": "OWNERSHIP granted to PUBLIC means every user in the account can manage this object. Confirm with the account owner whether this is intentional (e.g. a shared sandbox schema) or a default that should be reassigned to a specific role."
+      },
+      {
+        "issue": "public_role_has_direct_grants",
+        "severity": "low",
+        "target": "INSIGHTOPS_DB, SNOWFLAKE",
+        "evidence": "73 non-ownership privileges granted directly to PUBLIC (e.g. ADD SEARCH OPTIMIZATION, APPLYBUDGET, CREATE AGENT, CREATE AGGREGATION POLICY, CREATE ALERT)",
+        "recommendation": "These grants apply to every user in the account via the PUBLIC role. Review whether this is the intended scope, or whether it should be a named role instead."
+      }
+    ]
+  },
   "errors": {},
-  "total_findings": 6,
+  "total_findings": 11,
   "all_clear": false
 }
