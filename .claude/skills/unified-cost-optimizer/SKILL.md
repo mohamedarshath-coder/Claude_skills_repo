@@ -1,13 +1,13 @@
 ---
 name: unified-cost-optimizer
-description: Aggregates cost/idle-risk findings from snowflake-cost-audit and databricks-cluster-audit into one ranked roadmap -- real dollar-quantified findings first, unquantified configuration-risk findings from both platforms after. Use when asked for a cross-platform cost overview, savings roadmap, or "where is our data platform spend/risk concentrated."
+description: Aggregates cost/idle-risk findings from snowflake-cost-audit, databricks-cluster-audit, and snowflake-query-optimizer into one ranked roadmap -- real dollar-quantified findings first, unquantified configuration-risk and query-performance findings after. Use when asked for a cross-platform cost overview, savings roadmap, or "where is our data platform spend/risk concentrated."
 risk: read-only
 loop-tier: on-demand
 ---
 
 ## Purpose
 
-Leadership asking "where should we focus cost/cleanup effort across our data platform" today means reading two separate reports (Snowflake, Databricks) and manually reconciling them. This skill is the first in the catalog that reasons *across* platforms instead of within one — it genuinely calls both sibling skills' scripts and merges their findings into a single roadmap.
+Leadership asking "where should we focus cost/cleanup effort across our data platform" today means reading three separate reports (Snowflake cost, Databricks clusters, Snowflake query performance) and manually reconciling them. This skill is the first in the catalog that reasons *across* platforms instead of within one — it genuinely calls three sibling skills' scripts and merges their findings into a single roadmap.
 
 ## When to use
 
@@ -17,16 +17,16 @@ Use this skill when asked for a cross-platform cost overview, a unified savings 
 
 1. Confirm both underlying connections are configured: Snowflake (`~/.snowflake/connections.toml`) and Databricks (`DATABRICKS_HOST`/`DATABRICKS_TOKEN` or `~/.databrickscfg`). This skill never asks for or handles either credential directly.
 2. Run `python {{SKILL_DIR}}/scripts/unified_cost_optimizer.py` (accepts `--days N`, `--snowflake-connection NAME`, `--databricks-profile NAME`).
-3. The script **calls the actual `snowflake-cost-audit` and `databricks-cluster-audit` scripts directly** (a real cross-skill dependency, not a reimplementation) — a fix to either sibling skill's logic automatically flows through here too.
-4. **Critical honesty rule, inherited from both source skills:** this does *not* produce one blended dollar total across platforms.
+3. The script **calls the actual `snowflake-cost-audit`, `databricks-cluster-audit`, and `snowflake-query-optimizer` scripts directly** (a real cross-skill dependency on all three, not a reimplementation) — a fix to any sibling skill's logic automatically flows through here too.
+4. **Critical honesty rule, inherited from all three source skills:** this does *not* produce one blended dollar total across platforms.
    - **Tier 1 — quantified.** Only Snowflake's `cost_anomalies` carry a real, evidence-backed credit figure. These are ranked by actual credits, highest first.
-   - **Tier 2 — configuration risk, unquantified.** Everything else — Snowflake's idle/oversized warehouse flags *and* every Databricks cluster finding — has no dollar amount attached. List these, but never rank them against Tier 1 or against each other by fabricated cost-equivalence. Ranking configuration observations as if they were comparable dollar figures would repeat exactly the overclaiming `databricks-cluster-audit` was corrected for earlier in this repo's history.
+   - **Tier 2 — configuration risk, unquantified.** Everything else — Snowflake's idle/oversized warehouse flags, every Databricks cluster finding, *and* every slow-query finding from `snowflake-query-optimizer` — has no dollar amount attached. A slow query has a duration, not a credit figure, so it's Tier 2 like everything else here. List these, but never rank them against Tier 1 or against each other by fabricated cost-equivalence. Ranking configuration observations as if they were comparable dollar figures would repeat exactly the overclaiming `databricks-cluster-audit` was corrected for earlier in this repo's history.
 5. If one platform's script fails (bad credentials, connection issue), report that platform's section as unavailable with the real underlying error — never silently drop it or present a partial result as complete.
 6. If `tier1_quantified_savings_opportunities` is empty, say so plainly — an empty Tier 1 is a valid, common, honest result (most days won't have a real cost anomaly), not a sign something's broken.
 
 ## Helper scripts
 
-- `{{SKILL_DIR}}/scripts/unified_cost_optimizer.py` — orchestrates `snowflake-cost-audit/scripts/cost_audit.py` and `databricks-cluster-audit/scripts/cluster_audit.py` as subprocesses, merges their JSON output. No independent data access of its own; entirely dependent on (and therefore only as reliable as) its two sibling skills.
+- `{{SKILL_DIR}}/scripts/unified_cost_optimizer.py` — orchestrates `snowflake-cost-audit/scripts/cost_audit.py`, `databricks-cluster-audit/scripts/cluster_audit.py`, and `snowflake-query-optimizer/scripts/query_optimizer.py` as subprocesses, merges their JSON output. No independent data access of its own; entirely dependent on (and therefore only as reliable as) its three sibling skills.
 
 ## Output format
 
