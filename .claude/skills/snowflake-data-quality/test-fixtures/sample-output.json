@@ -1,5 +1,5 @@
 {
-  "_fixture_note": "ACTUAL output from the first live run against a real 6000-row table (names kept generic). Notable: the duplicates check PASSED with exactly 6000/6000 distinct -- disproving the ~113 duplicates suggested by snowflake-schema-explorer's approximate profile (HyperLogLog under-estimation), i.e. this skill's first real result was preventing a false alarm. DATE_OF_BIRTH shows the historical-column exemption (measured, not judged) added after the first version absurdly flagged it stale at 9328 days. Used by fixture-test CI: structural assertions only.",
+  "_fixture_note": "ACTUAL output, merged from two live runs (names kept generic). The duplicates/nulls/freshness section is from a real 6000-row table run: duplicates PASSED with exactly 6000/6000 distinct -- disproving the ~113 duplicates suggested by snowflake-schema-explorer's approximate profile (HyperLogLog under-estimation). DATE_OF_BIRTH shows the historical-column exemption (measured, not judged) added after the first version absurdly flagged it stale at 9328 days. range/fk/format/business-rule checks are from a separate real 20000-row order-items table run -- the business_rule_checks entry is the honest cautionary case: 89.88% 'violated' a guessed formula that turned out not to reflect the real (synthetic) data at all, not a real quality problem. Used by fixture-test CI: structural assertions only.",
   "schema": "RAW",
   "table": "RAW_CUSTOMERS",
   "duplicates": {
@@ -37,5 +37,49 @@
         "stale": true
       }
     ]
-  }
+  },
+  "range_checks": [
+    {
+      "column": "QUANTITY",
+      "min": 1.0,
+      "max": 100.0,
+      "non_null_count": 20000,
+      "out_of_range_count": 0,
+      "out_of_range_pct": 0.0,
+      "passed": true
+    }
+  ],
+  "referential_integrity_checks": [
+    {
+      "child_column": "ORDER_ID",
+      "parent": "RAW.RAW_ORDERS",
+      "parent_column": "ORDER_ID",
+      "non_null_child_count": 20000,
+      "orphan_count": 0,
+      "orphan_pct": 0.0,
+      "passed": true
+    }
+  ],
+  "format_checks": [
+    {
+      "column": "EMAIL",
+      "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+      "non_null_count": 6000,
+      "non_matching_count": 0,
+      "non_matching_pct": 0.0,
+      "passed": true
+    }
+  ],
+  "business_rule_checks": [
+    {
+      "rule_name": "line_total_formula",
+      "expression": "ABS(LINE_TOTAL - (QUANTITY * UNIT_PRICE - DISCOUNT_AMOUNT)) < 0.01",
+      "total_rows": 20000,
+      "satisfied_count": 2024,
+      "violated_count": 17976,
+      "indeterminate_count": 0,
+      "violated_pct": 89.88,
+      "passed": false
+    }
+  ]
 }

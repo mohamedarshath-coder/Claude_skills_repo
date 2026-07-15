@@ -163,6 +163,95 @@ def check_freshness(cur, schema, table, columns, threshold_days, freshness_colum
     return {"date_columns_found": len(date_cols), "threshold_days": threshold_days, "columns": results}
 
 
+def check_range(cur, schema, table, col, min_val, max_val):
+    """Exact count of non-null rows outside [min_val, max_val].
+    Never guessed: the caller supplies the range explicitly."""
+    row = run_query(cur, f"""
+        SELECT
+            COUNT({q(col)}) AS non_null_count,
+            COUNT_IF({q(col)} < %(min_val)s OR {q(col)} > %(max_val)s) AS out_of_range_count
+        FROM {q(schema)}.{q(table)}
+    """, {"min_val": min_val, "max_val": max_val})[0]
+    non_null = row["non_null_count"] or 0
+    out_of_range = row["out_of_range_count"] or 0
+    return {
+        "column": col, "min": min_val, "max": max_val,
+        "non_null_count": non_null, "out_of_range_count": out_of_range,
+        "out_of_range_pct": round(100.0 * out_of_range / non_null, 2) if non_null else 0.0,
+        "passed": out_of_range == 0,
+    }
+
+
+def check_referential_integrity(cur, schema, table, child_col, parent_ref, parent_col):
+    """Exact orphan count via anti-join: rows in the child table whose
+    child_col value does not exist in parent_ref.parent_col. parent_ref
+    is 'PARENT_SCHEMA.PARENT_TABLE' (caller-supplied, never inferred)."""
+    if "." not in parent_ref:
+        raise ValueError(f"--fk-check parent ref must be SCHEMA.TABLE, got: {parent_ref}")
+    parent_schema, parent_table = parent_ref.split(".", 1)
+    row = run_query(cur, f"""
+        SELECT
+            COUNT(c.{q(child_col)}) AS non_null_child_count,
+            COUNT_IF(p.{q(parent_col)} IS NULL) AS orphan_count
+        FROM {q(schema)}.{q(table)} c
+        LEFT JOIN {q(parent_schema.upper())}.{q(parent_table.upper())} p
+            ON c.{q(child_col)} = p.{q(parent_col)}
+        WHERE c.{q(child_col)} IS NOT NULL
+    """)[0]
+    non_null = row["non_null_child_count"] or 0
+    orphans = row["orphan_count"] or 0
+    return {
+        "child_column": child_col, "parent": f"{parent_schema.upper()}.{parent_table.upper()}", "parent_column": parent_col,
+        "non_null_child_count": non_null, "orphan_count": orphans,
+        "orphan_pct": round(100.0 * orphans / non_null, 2) if non_null else 0.0,
+        "passed": orphans == 0,
+    }
+
+
+def check_format(cur, schema, table, col, pattern):
+    """Exact count of non-null values NOT matching a caller-supplied regex
+    (REGEXP_LIKE). No built-in presets -- the caller specifies the pattern,
+    consistent with 'never guess' for every other check in this skill."""
+    row = run_query(cur, f"""
+        SELECT
+            COUNT({q(col)}) AS non_null_count,
+            COUNT_IF(NOT REGEXP_LIKE({q(col)}, %(pattern)s)) AS non_matching_count
+        FROM {q(schema)}.{q(table)}
+    """, {"pattern": pattern})[0]
+    non_null = row["non_null_count"] or 0
+    non_matching = row["non_matching_count"] or 0
+    return {
+        "column": col, "pattern": pattern,
+        "non_null_count": non_null, "non_matching_count": non_matching,
+        "non_matching_pct": round(100.0 * non_matching / non_null, 2) if non_null else 0.0,
+        "passed": non_matching == 0,
+    }
+
+
+def check_business_rule(cur, schema, table, name, expression):
+    """Exact count of rows where a caller-supplied boolean SQL expression
+    is false. NULLs in the expression are conservatively treated as
+    violations excluded from the count (SQL 3-valued logic: NOT NULL = NULL,
+    which COUNT_IF does not count as true) -- reported separately so a
+    rule with unexpected NULLs isn't silently under-counted."""
+    row = run_query(cur, f"""
+        SELECT
+            COUNT(*) AS total_rows,
+            COUNT_IF(({expression}) = TRUE) AS satisfied_count,
+            COUNT_IF(({expression}) = FALSE) AS violated_count,
+            COUNT_IF(({expression}) IS NULL) AS indeterminate_count
+        FROM {q(schema)}.{q(table)}
+    """)[0]
+    violated = row["violated_count"] or 0
+    return {
+        "rule_name": name, "expression": expression,
+        "total_rows": row["total_rows"], "satisfied_count": row["satisfied_count"] or 0,
+        "violated_count": violated, "indeterminate_count": row["indeterminate_count"] or 0,
+        "violated_pct": round(100.0 * violated / row["total_rows"], 2) if row["total_rows"] else 0.0,
+        "passed": violated == 0,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--connection", default=os.environ.get("SNOWFLAKE_CONNECTION_NAME", "default"))
@@ -172,6 +261,14 @@ def main():
     parser.add_argument("--freshness-threshold-days", type=int, default=DEFAULT_FRESHNESS_DAYS)
     parser.add_argument("--freshness-columns", nargs="*", default=None,
                         help="Only these date columns get a stale verdict; others are measured only")
+    parser.add_argument("--range-check", action="append", nargs=3, metavar=("COL", "MIN", "MAX"), default=[],
+                        help="Flag non-null values outside [MIN, MAX]. Repeatable.")
+    parser.add_argument("--fk-check", action="append", nargs=3, metavar=("CHILD_COL", "PARENT_SCHEMA.TABLE", "PARENT_COL"), default=[],
+                        help="Flag child values with no match in the parent table (referential integrity). Repeatable.")
+    parser.add_argument("--format-check", action="append", nargs=2, metavar=("COL", "REGEX"), default=[],
+                        help="Flag non-null values not matching REGEX (REGEXP_LIKE). Repeatable.")
+    parser.add_argument("--rule-check", action="append", nargs=2, metavar=("NAME", "SQL_BOOLEAN_EXPR"), default=[],
+                        help="Flag rows where the SQL boolean expression is false (business-rule consistency). Repeatable.")
     args = parser.parse_args()
 
     schema, table = args.schema.upper(), args.table.upper()
@@ -191,6 +288,14 @@ def main():
             "nulls": check_nulls(cur, schema, table, columns),
             "freshness": check_freshness(cur, schema, table, columns, args.freshness_threshold_days,
                                          args.freshness_columns),
+            "range_checks": [check_range(cur, schema, table, col.upper(), float(mn), float(mx))
+                             for col, mn, mx in args.range_check],
+            "referential_integrity_checks": [check_referential_integrity(cur, schema, table, child.upper(), parent_ref, parent_col.upper())
+                                             for child, parent_ref, parent_col in args.fk_check],
+            "format_checks": [check_format(cur, schema, table, col.upper(), pattern)
+                              for col, pattern in args.format_check],
+            "business_rule_checks": [check_business_rule(cur, schema, table, name, expr)
+                                     for name, expr in args.rule_check],
         }
         cur.close()
         conn.close()
