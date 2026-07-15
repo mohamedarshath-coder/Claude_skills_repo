@@ -44,6 +44,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+      # The skill scripts import their platform SDKs at module top, so the
+      # unit tests (which import the real scripts to test the real functions,
+      # not copies) need them installed even though no test ever connects
+      # anywhere. Without this, every test died at import time on the bare
+      # runner -- which kept this job silently red for 8 straight pushes
+      # while local runs (where the SDKs exist) stayed green.
+      - name: Install skill script dependencies
+        run: pip install snowflake-connector-python databricks-sdk
       - name: Run per-skill unit tests (test_*.py under test-fixtures/)
         run: python tools/ci/unit_tests.py
 
