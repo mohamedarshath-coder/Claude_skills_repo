@@ -42,6 +42,8 @@ Render as Markdown:
 
 Tested against a real, deliberately-constructed scenario on throwaway branches (created and deleted in the same session, never merged): two branches diverging from a common base, each editing the same line of the same file differently. The script correctly predicted the conflict and named the exact file. A second branch with a genuinely non-overlapping change (appending a new line) was correctly predicted as a clean merge. In both cases, `git status` and the checked-out branch were confirmed unchanged after the script ran — proving the "no working-directory side effects" claim, not just asserting it.
 
+**Gap-closing pass — binary conflicts, and 4 simultaneous conflict types in one prediction:** a second real scenario, two branches diverging from a shared base with four different files each triggering a different case at once — a text content conflict, an add/add (both branches creating the same new path with different content), a binary-file conflict, and a same-anchor-point append conflict (both branches appending a different line at the same location in an otherwise-untouched file). All 4 were predicted correctly and cross-checked against the raw `git merge-tree` output directly, not just the script's own JSON. The binary case in particular closed the one previously-untested branch: git's `merge-tree` has no distinct "binary" conflict type — it emits a separate `warning: Cannot merge binary files: ...` line (correctly ignored, since it isn't a `CONFLICT (...)` line) followed by an ordinary `CONFLICT (content): ...` line, so the script's `content` label for a binary file is correct, not a misclassification. `git status` and the checked-out branch were confirmed unchanged afterward, even with 4 simultaneous conflicts predicted.
+
 ## Verification status per conflict type (honest status, not hidden)
 
 | Conflict type | Live-tested | Notes |
@@ -51,7 +53,8 @@ Tested against a real, deliberately-constructed scenario on throwaway branches (
 | `rename/rename` (both branches rename the same file differently) | ✅ | **Found a real bug**: the original generic `in <path>` extraction produced garbage on this format ("conflict-gap-b and to .../renamed-by-a.txt in..."). Fixed with per-format extraction — rename messages resolve to the *original* path. Pinned by `test-fixtures/test_parse.py` |
 | `rename/delete` | ✅ | File resolves to original path |
 | 3 simultaneous conflicts in one prediction | ✅ | All parsed distinctly |
-| Binary-file conflicts | ❌ | Never constructed; message format unobserved |
+| 4 simultaneous conflicts, incl. binary, in one prediction | ✅ | Gap-closing pass: content, add/add, content (binary), content across 4 files, all parsed correctly in one run |
+| Binary-file conflicts | ✅ | Git emits no distinct "binary" conflict type in `merge-tree` output — a binary conflict surfaces as an ordinary `CONFLICT (content): ...` line, preceded by a separate `warning: Cannot merge binary files: ...` line (correctly ignored by the parser, since it isn't a `CONFLICT (...)` line). So the script's `content` label for a binary file is accurate, not a misclassification — there was never a distinct format to detect. |
 | Unrecognized future formats | unit-tested | `file: null` (honest) rather than a garbled guess |
 
 ## Loop tier
