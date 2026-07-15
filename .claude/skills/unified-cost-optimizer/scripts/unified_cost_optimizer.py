@@ -2,10 +2,14 @@
 """
 unified-cost-optimizer helper script.
 
-Aggregates findings from snowflake-cost-audit and databricks-cluster-audit
-into one ranked roadmap -- genuinely calls those skills' own scripts
-(subprocess, real cross-skill dependency, not a reimplementation), so a
-fix to either underlying skill automatically flows through here too.
+Aggregates findings from snowflake-cost-audit, databricks-cluster-audit,
+and snowflake-query-optimizer into one ranked roadmap -- genuinely calls
+all three skills' own scripts (subprocess, real cross-skill dependency,
+not a reimplementation), so a fix to any underlying skill automatically
+flows through here too. Query-optimizer findings (spilling, poor pruning,
+queueing) are Tier 2 (configuration risk, unquantified) -- a slow query
+has no directly attached credit figure, only duration, so it is never
+blended into Tier 1's real quantified-credits total.
 
 IMPORTANT HONESTY NOTE, carried over from both source skills: this does
 NOT produce one blended dollar total across platforms. Only Snowflake's
@@ -35,6 +39,7 @@ SKILLS_ROOT = os.path.dirname(SKILL_DIR)
 
 SNOWFLAKE_SCRIPT = os.path.join(SKILLS_ROOT, "snowflake-cost-audit", "scripts", "cost_audit.py")
 DATABRICKS_SCRIPT = os.path.join(SKILLS_ROOT, "databricks-cluster-audit", "scripts", "cluster_audit.py")
+SNOWFLAKE_QUERY_SCRIPT = os.path.join(SKILLS_ROOT, "snowflake-query-optimizer", "scripts", "query_optimizer.py")
 
 
 def run_script(script_path, extra_args):
@@ -57,7 +62,7 @@ def run_script(script_path, extra_args):
         return None, f"could not parse output: {e}"
 
 
-def build_roadmap(sf_data, db_data):
+def build_roadmap(sf_data, db_data, qp_data):
     tier1_quantified = []
     tier2_config_risk = []
     source_errors = {}
@@ -98,6 +103,19 @@ def build_roadmap(sf_data, db_data):
                     "severity": issue.get("severity"),
                 })
 
+    if qp_data is None:
+        source_errors["snowflake_query_performance"] = "snowflake-query-optimizer did not return usable data"
+    else:
+        for q in qp_data.get("results", []):
+            for issue in q.get("issues", []):
+                tier2_config_risk.append({
+                    "source": "snowflake_query_performance",
+                    "finding": issue["issue"],
+                    "target": q["query_id"],
+                    "evidence": issue["evidence"],
+                    "severity": issue.get("severity"),
+                })
+
     tier1_quantified.sort(key=lambda x: x["quantified_credits"], reverse=True)
 
     return {
@@ -124,11 +142,16 @@ def main():
         db_args = ["--profile", args.databricks_profile]
     db_data, db_err = run_script(DATABRICKS_SCRIPT, db_args)
 
-    roadmap = build_roadmap(sf_data, db_data)
+    qp_args = ["--days", str(args.days), "--connection", args.snowflake_connection]
+    qp_data, qp_err = run_script(SNOWFLAKE_QUERY_SCRIPT, qp_args)
+
+    roadmap = build_roadmap(sf_data, db_data, qp_data)
     if sf_err:
         roadmap["source_errors"]["snowflake_script_error"] = sf_err
     if db_err:
         roadmap["source_errors"]["databricks_script_error"] = db_err
+    if qp_err:
+        roadmap["source_errors"]["snowflake_query_script_error"] = qp_err
 
     print(json.dumps(roadmap, indent=2, default=str))
 
