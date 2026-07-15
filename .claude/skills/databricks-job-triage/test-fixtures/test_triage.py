@@ -16,7 +16,14 @@ import sys
 from types import SimpleNamespace
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-from job_triage import pre_filter_trace, summarize_run, TRACE_TAIL_LINES  # noqa: E402
+from job_triage import pre_filter_trace, summarize_run, get_failed_runs, TRACE_TAIL_LINES  # noqa: E402
+
+
+class ListRunsClient:
+    """Stub for get_failed_runs: client.jobs.list_runs() yields constructed
+    runs, newest-first, matching the real API's ordering contract."""
+    def __init__(self, runs):
+        self.jobs = SimpleNamespace(list_runs=lambda **kw: iter(runs))
 
 
 def make_state(result="FAILED", message="boom"):
@@ -87,6 +94,24 @@ def run_tests():
     entry3 = summarize_run(client3, run3)
     check("single-task (tasks=None): falls back to the run itself",
           len(entry3["failed_tasks"]) == 1 and client3.fetched == [3000])
+
+    # --- get_failed_runs truncation reporting: the live-caught silent-cap bug ---
+    # (14-day live sweep found 46 real failures against the default
+    # --max-runs=20, with zero indication 26 more existed)
+    def make_run(rid, days_ago=0):
+        return SimpleNamespace(run_id=rid, start_time=1_800_000_000_000 - days_ago,
+                               state=make_state())
+
+    many_runs = [make_run(i) for i in range(5)]
+    failed, truncated = get_failed_runs(ListRunsClient(many_runs), days=999, max_runs=3)
+    check("cap hit: exactly max_runs returned",
+          len(failed) == 3)
+    check("cap hit: truncated=True (must not be silent)",
+          truncated is True)
+
+    failed, truncated = get_failed_runs(ListRunsClient(many_runs), days=999, max_runs=100)
+    check("cap NOT hit (fewer failures than max_runs): truncated=False",
+          len(failed) == 5 and truncated is False)
 
     # --- pre_filter_trace: the mandatory log pre-filtering ---
     ansi = "\x1b[0;31mException\x1b[0m: dbt failed"

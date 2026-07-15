@@ -77,11 +77,18 @@ def pre_filter_trace(raw_trace):
 
 
 def get_failed_runs(client, days, max_runs):
+    """Returns (failed_runs, truncated). truncated=True means the cap was
+    hit before the time window was fully scanned -- there are MORE
+    failures in the window than were returned. This must be surfaced,
+    never silently dropped (found live: a 14-day window had 46 real
+    failures against the default --max-runs=20, and the report gave no
+    indication 26 more existed)."""
     cutoff_ms = int((time.time() - days * 86400) * 1000)
     failed = []
+    truncated = False
     for run in client.jobs.list_runs(expand_tasks=True, completed_only=True):
         if run.start_time is not None and run.start_time < cutoff_ms:
-            break  # list_runs is newest-first; once past the window, stop
+            break  # list_runs is newest-first; once past the window, stop naturally
         state = run.state
         result_state = getattr(state, "result_state", None)
         result_state_val = getattr(result_state, "value", result_state)
@@ -89,8 +96,9 @@ def get_failed_runs(client, days, max_runs):
             continue
         failed.append(run)
         if len(failed) >= max_runs:
+            truncated = True
             break
-    return failed
+    return failed, truncated
 
 
 def summarize_run(client, run):
@@ -146,7 +154,7 @@ def main():
 
     try:
         client = WorkspaceClient(profile=args.profile) if args.profile else WorkspaceClient()
-        failed_runs = get_failed_runs(client, args.days, args.max_runs)
+        failed_runs, truncated = get_failed_runs(client, args.days, args.max_runs)
         summaries = [summarize_run(client, r) for r in failed_runs]
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
@@ -155,6 +163,12 @@ def main():
     output = {
         "window_days": args.days,
         "failed_run_count": len(summaries),
+        "truncated": truncated,
+        "truncation_note": (
+            f"Showing the first {args.max_runs} failures found (newest first) -- "
+            f"there may be MORE failures in this {args.days}-day window. "
+            f"Re-run with a higher --max-runs to see them all."
+        ) if truncated else None,
         "failed_runs": summaries,
     }
     print(json.dumps(output, indent=2, default=str))

@@ -41,7 +41,7 @@ Per `.claude/rules/skill-template.md`, any skill ingesting raw logs must pre-fil
 
 Render as Markdown, grouped by job:
 
-1. **Summary line** — bolded: how many failed runs in the window, across how many distinct jobs.
+1. **Summary line** — bolded: how many failed runs in the window, across how many distinct jobs. **If `truncated` is true, say so in this same line** (e.g. "Showing the 20 most recent of possibly more failures — re-run with a higher --max-runs") — never present a truncated count as if it were the complete picture.
 2. **Per failed job (repeat per job):**
    - Job name, run ID, when it failed
    - Failed task key (if multi-task)
@@ -59,6 +59,7 @@ Always cite the actual run ID, job name, and error text pulled by the script —
 | Single-task failure resolution + real trace | ✅ (5 real failed runs, masked-dbt-error finding) | ✅ |
 | **Multi-task resolution to the specific failing task** | ❌ every real failure so far was single-task | ✅ `test-fixtures/test_triage.py` (1-of-3 failed, 2-of-3 failed, output fetched only for failed task run_ids) |
 | ANSI stripping / repetition collapse / tail cap | ✅ (real ANSI-laden dbt traces) | ✅ (incl. 50x-repeat collapse, 200-line cap, suppressed-count honesty) |
+| **Truncation reporting (`truncated` / `truncation_note`)** | ✅ — found live: a 14-day window had 46 real failures against the default `--max-runs=20`, silently capped with zero indication more existed. Fixed and re-verified both states live: capped (`truncated: true` + note) and uncapped (`--max-runs 100` → `truncated: false`) | ✅ (cap-hit and cap-not-hit paths) |
 
 The multi-task path is covered by unit tests running the real `summarize_run()` against constructed run objects with a stub client; live confirmation awaits a real multi-task job failure occurring naturally.
 

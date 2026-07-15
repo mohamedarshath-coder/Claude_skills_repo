@@ -2,6 +2,8 @@
   "_fixture_note": "Anonymized real output. Run/job/task IDs randomized, job name genericized. Used by the fixture-test CI check: assertions are structural (log pre-filtering applied, error surfaced, trace truncation reported), never on exact wording.",
   "window_days": 3,
   "failed_run_count": 1,
+  "truncated": false,
+  "truncation_note": null,
   "failed_runs": [
     {
       "job_name": "demo_dbt_pipeline",
