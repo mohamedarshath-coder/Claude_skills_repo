@@ -61,6 +61,10 @@ Always cite the actual numbers (bytes spilled, partition counts, ms queued) behi
 
 The `spilling_to_local_storage` branch is now genuinely live-verified, not just unit-tested — a real, deliberately-constructed stress query (a cross join most people would write by accident, not on purpose) triggered it with exact byte-level evidence matching the script's own output. The remaining branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once.
 
+## Known limitation: default scan can miss a flagged query entirely
+
+The default (no-`--query-id`) mode only analyzes the **top 10 slowest queries by duration** in the window — found live (2026-07-15): the account's known `spilling_to_local_storage` query (26MB spilled, 1.46s execution) fell outside the top 10 in a 14-day window, where the slowest 10 queries ranged 1.9s-13.8s with zero issues among them. A query can have a real, evidence-backed issue and still never be examined by the default scan if enough other queries simply ran longer without any issue at all. This surfaced because `unified-cost-optimizer` calls this script with no `--query-id` and reported a clean query-performance section despite the known issue existing in the account. Not a bug in `diagnose()` itself — every query it actually examines is judged correctly — but a real gap in *which* queries the default mode chooses to examine. Duration is a proxy for "worth checking," not a guarantee of catching every real issue. Not yet fixed; a future version could rank candidates by "has any flagged issue" first with duration as a tiebreaker, or widen the default scan beyond top-10.
+
 ## Loop tier & future promotion
 
 Currently **Tier 1 (on-demand)**, per repo rule (`.claude/rules/loop-engineering.md`) that no skill starts above Tier 1.
