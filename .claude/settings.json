@@ -4,15 +4,15 @@
       "Bash(python .claude/skills/**/scripts/*.py:*)",
       "Read(./.claude/skills/**)"
     ],
-    "ask": [
-      "Bash(git push:*)"
-    ],
     "deny": [
       "Read(./.env)",
       "Read(./**/.env)",
       "Read(./**/*credentials*)",
       "Read(./**/*.pem)",
       "Read(./**/connections.toml)"
+    ],
+    "ask": [
+      "Bash(git push:*)"
     ]
   }
 }
