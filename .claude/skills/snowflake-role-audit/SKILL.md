@@ -68,7 +68,7 @@ Run against the real account before this SKILL.md was even finalized -- the firs
 | `public_role_has_direct_grants` (non-ownership aggregate) | ✅ (73 real grants) | ✅ (incl. clean/zero-grant case) |
 | `stale_user_active_access`: a genuinely stale/never-logged-in user | ❌ this account's one real user is active daily; no such case exists yet | ✅ (never-logged-in and stale-by-N-days cases) |
 | Multi-user account (more than one real user triggering findings independently) | ❌ this Snowflake account has exactly one real user, unlike the Databricks workspace tested elsewhere in this repo | — |
-| `--privileged-roles` override (a custom role name beyond the default 3) | ❌ not yet tried live | structurally supported, untested |
+| `--privileged-roles` override (a custom role name beyond the default 3) | ✅ (2026-07-15) — `--privileged-roles ACCOUNTADMIN SECURITYADMIN ORGADMIN TRANSFORMER` correctly added a real hit for the account's actual custom role `TRANSFORMER` (granted by `ACCOUNTADMIN`), raising `finding_count` from 6 to 7. Confirms the override isn't just structurally wired but genuinely changes which grants get flagged against real data | ✅ |
 
 ## Loop tier & future promotion
 
