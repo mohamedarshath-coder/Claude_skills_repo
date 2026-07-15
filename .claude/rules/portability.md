@@ -12,6 +12,8 @@
 4. **Native data access, not hardcoded integration mechanisms.** Never write "use the `X-mcp-server`" or reference a specific plugin/vendor command. Describe *what* to query ("query the warehouse credit usage view") and let the runtime's own connector/governance layer handle *how*.
 5. **No hardcoded credentials or connection strings — ever.** Skills reference a named connection profile (e.g. Snowflake `connections.toml` read via `snowflake-connector-python`'s `connection_name=`, or a Databricks CLI/`databricks-sdk` profile) that each user configures locally. The skill never knows or cares which specific auth method backs that profile.
 
-## CI enforcement (planned)
+## CI enforcement
 
-A `portability-lint` check will flag: hardcoded paths, MCP/plugin/vendor-specific command references, hardcoded credentials/connection strings, and other Claude-only phrasing, before a PR can merge.
+`tools/ci/portability_lint.py` (the `portability-lint` job in `.github/workflows/skills-ci.yml`) scans every `SKILL.md` body — frontmatter excluded — and fails the PR on: assistant/vendor references (Claude Code, Cursor, Copilot, Codex, MCP servers), slash-command invocation references (`` `/skill-name` `` style), bare helper-script paths missing `{{SKILL_DIR}}`, and hardcoded drive-letter paths (placeholder-marked setup examples like `D:\path\to\...` are allowed). Credential scanning is deliberately left to `secrets_scan.py` — one source of truth, repo-wide.
+
+Proven against real violations, not just clean files: on its first run it caught two genuine issues in `snowflake-cost-audit`'s SKILL.md (a slash-command invocation reference and a bare `scripts/scheduled_run.py` path), both fixed in the same PR that added the linter.
