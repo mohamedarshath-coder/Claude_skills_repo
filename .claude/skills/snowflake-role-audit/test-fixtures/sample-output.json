@@ -1,0 +1,51 @@
+{
+  "_fixture_note": "ACTUAL output from a real live run against the account (name kept generic in the connection field). This account has a single real user directly holding ACCOUNTADMIN and ORGADMIN, with default_role also set to ACCOUNTADMIN -- a genuine, live-fired finding, not synthetic. PUBLIC role ownership grants on two schemas (USER$ARSHATH.PUBLIC, INSIGHTOPS_DB.PUBLIC) plus 73 non-ownership grants are also real. The stale_user_active_access check never fired live in this run (the one real user logged in the same day) -- covered instead by test_role_audit.py's stub-cursor unit tests.",
+  "connection": "default",
+  "privileged_roles_checked": ["ACCOUNTADMIN", "SECURITYADMIN", "ORGADMIN"],
+  "stale_login_threshold_days": 30,
+  "finding_count": 6,
+  "findings": [
+    {
+      "issue": "privileged_role_granted_to_user",
+      "severity": "high",
+      "target": "ARSHATH",
+      "evidence": "role 'ACCOUNTADMIN' directly granted (granted_by=SYSTEM, on 2026-06-24 22:01:49.349000-07:00)",
+      "recommendation": "Confirm with whoever owns access policy whether this user needs standing access to this role, or whether it should be granted only when needed (e.g. via a lower-privileged default role with explicit role-switching)."
+    },
+    {
+      "issue": "privileged_role_granted_to_user",
+      "severity": "high",
+      "target": "ARSHATH",
+      "evidence": "role 'ORGADMIN' directly granted (granted_by=SYSTEM, on 2026-06-24 22:01:52.693000-07:00)",
+      "recommendation": "Confirm with whoever owns access policy whether this user needs standing access to this role, or whether it should be granted only when needed (e.g. via a lower-privileged default role with explicit role-switching)."
+    },
+    {
+      "issue": "default_role_is_privileged",
+      "severity": "high",
+      "target": "ARSHATH",
+      "evidence": "default_role = 'ACCOUNTADMIN' (last login: 2026-07-15 02:48:48.976000-07:00)",
+      "recommendation": "Every session for this user starts with this privileged role already active. Consider setting a lower-privileged default role and requiring an explicit USE ROLE to elevate, unless this is a deliberate choice for a small/trusted team."
+    },
+    {
+      "issue": "public_role_has_ownership_grant",
+      "severity": "medium",
+      "target": "USER$ARSHATH.PUBLIC",
+      "evidence": "PUBLIC role holds OWNERSHIP on SCHEMA 'USER$ARSHATH.PUBLIC'",
+      "recommendation": "OWNERSHIP granted to PUBLIC means every user in the account can manage this object. Confirm with the account owner whether this is intentional (e.g. a shared sandbox schema) or a default that should be reassigned to a specific role."
+    },
+    {
+      "issue": "public_role_has_ownership_grant",
+      "severity": "medium",
+      "target": "INSIGHTOPS_DB.PUBLIC",
+      "evidence": "PUBLIC role holds OWNERSHIP on SCHEMA 'INSIGHTOPS_DB.PUBLIC'",
+      "recommendation": "OWNERSHIP granted to PUBLIC means every user in the account can manage this object. Confirm with the account owner whether this is intentional (e.g. a shared sandbox schema) or a default that should be reassigned to a specific role."
+    },
+    {
+      "issue": "public_role_has_direct_grants",
+      "severity": "low",
+      "target": "INSIGHTOPS_DB, SNOWFLAKE",
+      "evidence": "73 non-ownership privileges granted directly to PUBLIC (e.g. ADD SEARCH OPTIMIZATION, APPLYBUDGET, CREATE AGENT, CREATE AGGREGATION POLICY, CREATE ALERT)",
+      "recommendation": "These grants apply to every user in the account via the PUBLIC role. Review whether this is the intended scope, or whether it should be a named role instead."
+    }
+  ]
+}
