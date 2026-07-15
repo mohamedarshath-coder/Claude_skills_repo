@@ -24,7 +24,7 @@ your-project/
 │   ├── skills/                 # one folder per skill — SKILL.md + scripts/
 │   └── agents/                  # subagent personas (for multi-skill orchestration, later)
 └── tools/
-    ├── ci/                      # CI check scripts (structure, secrets, fixtures, unit tests)
+    ├── ci/                      # CI check scripts (structure, secrets, fixtures, unit tests, portability-lint)
     └── export-skill/            # converts a canonical SKILL.md to Cursor/agents-md/native formats
 ```
 

@@ -46,3 +46,13 @@ jobs:
           python-version: "3.10"
       - name: Run per-skill unit tests (test_*.py under test-fixtures/)
         run: python tools/ci/unit_tests.py
+
+  portability-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Lint SKILL.md bodies for vendor-specific/non-portable phrasing
+        run: python tools/ci/portability_lint.py

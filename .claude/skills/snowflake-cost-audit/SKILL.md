@@ -87,8 +87,8 @@ Always cite the actual numbers pulled by the script (credits, seconds, query IDs
 
 This skill has two invocation modes, both backed by the same `cost_audit.py` logic:
 
-1. **On-demand (Tier 1)** — `/snowflake-cost-audit` or a natural-language ask, exactly as documented above. Unchanged. Anyone can still run this interactively at any time.
-2. **Scheduled (Tier 3, product-loop)** — `scripts/scheduled_run.py`, run daily via each user's own local scheduler (Windows Task Scheduler / cron), promoted via its own explicit PR per `.claude/rules/loop-engineering.md`. It:
+1. **On-demand (Tier 1)** — invoked by name or by a natural-language ask, exactly as documented above. Unchanged. Anyone can still run this interactively at any time.
+2. **Scheduled (Tier 3, product-loop)** — `{{SKILL_DIR}}/scripts/scheduled_run.py`, run daily via each user's own local scheduler (Windows Task Scheduler / cron), promoted via its own explicit PR per `.claude/rules/loop-engineering.md`. It:
    - Runs a 1-day lookback daily and uses the existing `cost_anomalies` detector as its "should I speak at all" trigger
    - **Stays quiet when healthy** — a clean day writes exactly one line to `digest.log` and nothing else
    - **Notifies only on a finding** — a non-empty `cost_anomalies` or `flagged_warehouses` result appends a `FINDING` block to `digest.log` and posts to Slack if `SLACK_WEBHOOK_URL` is configured (falls back to `digest.log` only, since Slack workspace access isn't set up yet — see the proposal's Section 8.3 prerequisite)
