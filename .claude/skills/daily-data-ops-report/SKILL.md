@@ -1,6 +1,6 @@
 ---
 name: daily-data-ops-report
-description: One morning summary across both platforms -- failed Databricks jobs, Snowflake cost + anomalies, cluster config risks, and freshness of explicitly watched tables -- by orchestrating four sibling skills in one command. Use when asked for a morning check, daily ops summary, or "how is the data platform doing today."
+description: One morning summary across both platforms -- failed Databricks jobs, Snowflake cost + anomalies, cluster config risks, freshness of explicitly watched tables, and access-control risks -- by orchestrating five sibling skills in one command. Use when asked for a morning check, daily ops summary, or "how is the data platform doing today."
 risk: read-only
 loop-tier: on-demand
 ---
@@ -18,11 +18,12 @@ Use this skill when asked for: a morning check, daily data-ops summary, "how's t
 1. Confirm both connections are configured (Snowflake `connections.toml`; Databricks env vars or `~/.databrickscfg`). This skill never handles credentials directly.
 2. Run `python {{SKILL_DIR}}/scripts/daily_report.py --days 1 [--watch-table SCHEMA.TABLE ...]`.
    - `--watch-table` (repeatable) names the tables whose freshness matters — the report **never guesses** which tables to watch. None configured = the freshness section says so plainly.
-3. The script calls four sibling skills' scripts directly (real cross-skill dependencies, not reimplementations — fixes there flow through here):
+3. The script calls five sibling skills' scripts directly (real cross-skill dependencies, not reimplementations — fixes there flow through here):
    - `databricks-job-triage` → failed runs in the window, per-task
    - `snowflake-cost-audit` → credits used + cost anomalies + flagged warehouses
    - `databricks-cluster-audit` → cluster config risks
    - `snowflake-data-quality` → freshness verdicts for each watched table (only *judged* columns count; historical columns are excluded by that skill's own semantics)
+   - `snowflake-role-audit` → access-control risks (privileged grants, privileged default roles, PUBLIC grants, stale users). Role config barely changes day to day, so this section will usually repeat yesterday's findings — deliberately: an unacknowledged standing risk re-appearing every morning is the point, not noise.
 4. Each section degrades independently — one platform failing produces that section's real error in `errors`, never a silently missing section, and never takes down the other platform's data.
 5. `total_findings` and `all_clear` summarize the whole report — the "should this stay quiet" signal a future scheduled (Tier 3) version would key on.
 
@@ -39,8 +40,9 @@ Render as Markdown, in this order — worst news first:
 3. **Snowflake cost** — credits used (with the user-managed-warehouses scope note), anomalies table if any.
 4. **Cluster config risks** — table, with the pattern callout if one issue repeats across clusters.
 5. **Freshness** — per watched table: stale columns with ages, or "fresh." If not configured, say so.
-6. **Errors** — any section that failed, with its real error.
-7. **Bottom line** — one bolded sentence: the single most important thing to act on this morning, or confirmation nothing needs attention.
+6. **Access-control risks** — table (issue, severity, target, evidence), or "no access findings." Note when findings are unchanged standing risks rather than new this morning, if that's knowable from context.
+7. **Errors** — any section that failed, with its real error.
+8. **Bottom line** — one bolded sentence: the single most important thing to act on this morning, or confirmation nothing needs attention.
 
 ## Verified live (not just fixture-tested)
 
@@ -50,7 +52,8 @@ First live run (both platforms, 2 watched tables) returned a genuinely new findi
 
 | Path | Status |
 |---|---|
-| All four sections, live, both platforms | ✅ |
+| All four original sections, live, both platforms | ✅ |
+| Fifth section (access-control via `snowflake-role-audit`), live | ✅ — added the day that skill was built; first combined run returned 11 findings across 3 sections (3 cluster config risks, 2 stale columns, 6 access findings incl. two high-severity privileged-grant findings), zero errors, `total_findings` correctly summing all five sections |
 | Live cost-anomaly finding flowing through | ✅ (first-ever live firing of that detector) |
 | Per-section degradation | ✅ verified directly on this skill: with deliberately broken Databricks credentials, both Databricks sections returned `None` with real errors in `errors`, while both Snowflake sections (cost incl. the live anomaly, freshness) completed normally |
 | Evidence passthrough on cluster findings | ✅ — the first version dropped evidence when compacting; caught by the repo's own fixture-test CI (a red Actions run exists as proof), fixed to carry evidence/recommendation through verbatim |
