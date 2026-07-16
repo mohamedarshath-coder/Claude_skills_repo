@@ -63,6 +63,12 @@ The `table_too_small` path fired live and correctly on that same run — `RAW_OR
 
 **The `recommend` path is now genuinely live-verified too**, closing the last real gap. A deliberately-constructed but genuinely real 60-million-row, 8.8GB table (`RAW.CLUSTER_TEST_EVENTS`, built to have 528 real micro-partitions) was created specifically so one column (`REGION`) is randomly scattered relative to physical storage order, while another (`EVENT_TIME`) is physically sorted. 9 real queries were run: 6 filtering on `REGION`, 3 on `EVENT_TIME`. Snowflake's own engine confirmed the intended contrast independently: every `REGION` query scanned **528 of 528 partitions (100%)**, every `EVENT_TIME` range query scanned only **21 of 528 (4%)**. Running the skill against this table (once `ACCOUNT_USAGE.QUERY_HISTORY`'s ~45-minute ingestion lag cleared) correctly identified all 6 `REGION` queries as poorly-pruned, correctly ignored all 3 `EVENT_TIME` queries, and recommended `REGION` as the clustering key with a 1.0 average pruning ratio — zero false positives on `CUSTOMER_ID`, `EVENT_TIME`, or `AMOUNT_DOLLARS`.
 
+**A second, more complex round closed the remaining two gaps in one sitting.** Three more real tables were built specifically to force the last untested outcomes:
+
+- `RAW.CLUSTER_TEST_COMPLEX` (30M rows, 4.4GB, no clustering key) — 8 `REGION` queries and 4 `CUSTOMER_SEGMENT` queries, both scattered randomly, plus 3 well-pruning `EVENT_TIME` queries. The skill correctly found 12 of 16 queries poorly-pruned and **correctly ranked two real competing candidates** — `REGION` (8 mentions) above `CUSTOMER_SEGMENT` (4 mentions) — a harder test than a single bad column, since it had to judge relative severity, not just detect a problem.
+- `RAW.CLUSTER_TEST_MISALIGNED` (20M rows, 2.9GB) — given an explicit clustering key on `CUSTOMER_SEGMENT` (genuinely healthy: 0.0335 average overlaps, 1.02 average depth), then queried exclusively by `REGION`, a different column. **This is the first live firing of `reclustering_may_help`** — the skill correctly distinguished "a key exists and is healthy for what it clusters" from "the key doesn't match how the table is actually queried," recommending `REGION` instead without disparaging the existing key's own quality.
+- `RAW.CLUSTER_TEST_WELL_ORGANIZED` (15M rows, 2.2GB, physically sorted by `REGION`) — queried only by `REGION`. **This is the first live firing of `pruning_already_good`** — 5 of 5 queries pruned well, and the skill correctly said nothing needed fixing rather than manufacturing a finding.
+
 ## Verification status per branch (honest status, not hidden)
 
 | Path | Live account | Unit-tested |
@@ -70,13 +76,14 @@ The `table_too_small` path fired live and correctly on that same run — `RAW_OR
 | `table_too_small` | ✅ (real 0.001 GB table) | ✅ |
 | `not_enough_query_history` | ✅ (real 0-qualifying-query result) | ✅ |
 | `SYSTEM$CLUSTERING_INFORMATION` on an unclustered table, clean result | ✅ (real bug found and fixed live) | — |
-| `recommend` (a clear, confident recommendation) | ✅ (real 60M-row/8.8GB/528-partition table; 6 of 10 real queries correctly identified as poorly-pruned, `REGION` correctly recommended at 1.0 avg pruning ratio, zero false positives) | ✅ (incl. verifying a SELECT-list-only mention like `CUSTOMER_ID` is correctly excluded) |
-| `pruning_already_good` | ❌ not yet observed on a large real table (would need a large table where every query happens to prune well) | ✅ |
-| `insufficient_column_evidence` | ❌ not yet observed live | ✅ |
-| `reclustering_may_help` | ❌ not yet observed live (would need a table that already has a clustering key defined) | ✅ |
-| `strip_select_list` / `extract_candidate_columns` (the heuristic itself) | ✅ (proven correct against the real 60M-row test above) | ✅ (SELECT-list stripping, real-column-only matching, empty-input safety) |
+| `recommend`, single candidate | ✅ (real 60M-row/8.8GB/528-partition table; 6 of 10 real queries correctly identified as poorly-pruned, `REGION` correctly recommended at 1.0 avg pruning ratio, zero false positives) | ✅ (incl. verifying a SELECT-list-only mention like `CUSTOMER_ID` is correctly excluded) |
+| `recommend`, ranking 2 competing candidates | ✅ (real 30M-row table; `REGION` [8 mentions] correctly ranked above `CUSTOMER_SEGMENT` [4 mentions], `EVENT_TIME` correctly excluded) | ✅ |
+| `reclustering_may_help` | ✅ (real 20M-row table with a genuinely healthy key on the wrong column — `CUSTOMER_SEGMENT` clustering itself measured healthy, but `REGION` correctly identified as the actual query pattern) | ✅ |
+| `pruning_already_good` | ✅ (real 15M-row table physically sorted by `REGION`; 5 of 5 real `REGION` queries pruned well, correctly reported as no action needed) | ✅ |
+| `insufficient_column_evidence` | ❌ not yet observed live — would need a large table with genuinely poor pruning but no identifiable real-column cause (e.g. a filter on a computed expression) | ✅ |
+| `strip_select_list` / `extract_candidate_columns` (the heuristic itself) | ✅ (proven correct across all of the above, including correct multi-candidate ranking) | ✅ (SELECT-list stripping, real-column-only matching, empty-input safety) |
 
-**What's still open:** `pruning_already_good`, `insufficient_column_evidence`, and `reclustering_may_help` haven't yet occurred live — the first would need a large real table where query patterns happen to already prune well, the second a large table with poor pruning but no identifiable filter column, the third a large table that already has an explicit clustering key defined. All three remain proven only against constructed unit-test inputs. The hardest and most valuable branch (`recommend`, the actual pattern-mining logic) is now genuinely live-proven end to end.
+**What's still open:** only `insufficient_column_evidence` remains unit-tested-only — every other branch this skill can produce, including both the harder multi-candidate ranking case and the previously-unfired `reclustering_may_help`/`pruning_already_good` outcomes, is now proven against real, independently-verifiable Snowflake data.
 
 ## Loop tier
 

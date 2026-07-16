@@ -1,0 +1,35 @@
+{
+  "_fixture_note": "Real output from 2026-07-16 against RAW.CLUSTER_TEST_MISALIGNED (20M rows, 2.9GB) -- deliberately given an explicit clustering key on CUSTOMER_SEGMENT (a genuinely healthy key: 0.0335 average overlaps, 1.02 average depth), then queried exclusively by REGION, a different column. First live firing of reclustering_may_help: the skill correctly distinguished a healthy-but-irrelevant key from an unclustered table, recommending REGION without disparaging CUSTOMER_SEGMENT's own clustering quality.",
+  "schema": "RAW",
+  "table": "CLUSTER_TEST_MISALIGNED",
+  "heuristic_note": "Candidate columns are found via text-matching real column names against the non-SELECT-list portion of poorly-pruned queries -- not a SQL parser. It can miss a real filter written unusually, and can't fully rule out a same-named column from a different, joined table.",
+  "table_stats": {
+    "row_count": 20000000,
+    "bytes": 3106726400
+  },
+  "existing_clustering": {
+    "clustered": true,
+    "cluster_by_keys": "LINEAR(CUSTOMER_SEGMENT)",
+    "total_partition_count": 179,
+    "average_overlaps": 0.0335,
+    "average_depth": 1.0223
+  },
+  "queries_analyzed": 5,
+  "pruning_threshold_pct": 50.0,
+  "poorly_pruned_query_count": 5,
+  "candidate_clustering_columns": [
+    {
+      "column": "REGION",
+      "mention_count": 5,
+      "avg_pruning_ratio_when_present": 1.0
+    }
+  ],
+  "advisory": {
+    "status": "reclustering_may_help",
+    "detail": "Table already has a clustering key (LINEAR(CUSTOMER_SEGMENT)), but 5 of 5 queries still pruned poorly. The most-mentioned filter column(s) in those queries were ['REGION'] -- worth checking whether the existing key still matches real query patterns, or whether the table needs reclustering (data drift can degrade an originally-good key over time).",
+    "suggested_keys": [
+      "REGION"
+    ]
+  },
+  "errors": {}
+}
