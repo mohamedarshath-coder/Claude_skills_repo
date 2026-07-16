@@ -1,0 +1,24 @@
+{
+  "_fixture_note": "Real output from 2026-07-16 against RAW.RAW_ORDER_ITEMS (20,000 rows, ~1MB). This is the actual second live run, after fixing a real bug the first run found: SYSTEM$CLUSTERING_INFORMATION errors on a table with no explicit clustering key ('table X is not clustered') rather than returning natural-organization stats -- the script now catches that specific message and reports clustered: false cleanly, with an empty errors object, instead of surfacing it as a data-access failure.",
+  "schema": "RAW",
+  "table": "RAW_ORDER_ITEMS",
+  "heuristic_note": "Candidate columns are found via text-matching real column names against the non-SELECT-list portion of poorly-pruned queries -- not a SQL parser. It can miss a real filter written unusually, and can't fully rule out a same-named column from a different, joined table.",
+  "table_stats": {
+    "row_count": 20000,
+    "bytes": 1094656
+  },
+  "existing_clustering": {
+    "clustered": false,
+    "cluster_by_keys": null
+  },
+  "queries_analyzed": 0,
+  "pruning_threshold_pct": 50.0,
+  "poorly_pruned_query_count": 0,
+  "candidate_clustering_columns": [],
+  "advisory": {
+    "status": "table_too_small",
+    "detail": "Table is 0.001 GB, below the 1.0 GB threshold this check uses -- clustering overhead (reclustering credits) isn't worth it at this size regardless of query patterns.",
+    "suggested_keys": null
+  },
+  "errors": {}
+}
