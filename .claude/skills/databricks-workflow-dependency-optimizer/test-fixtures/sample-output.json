@@ -1,0 +1,18 @@
+{
+  "_fixture_note": "Real output from 2026-07-16 against a deliberately-built test job (dep_optimizer_test_job, job_id 619066184056874): root task then 3 independent sibling tasks (branch_a, branch_b, branch_c, each sleeping ~25s), all sharing one deliberately small single-node cluster to try to force resource contention. Real result: Databricks ran all 3 independent tasks fully concurrently anyway (start times within ~220ms of each other) -- the attempt to force serialization did not succeed, an honest result in itself. Critical path (root+branch_a, 380.2s estimated) matched the real observed average job duration (381.1s) within 0.9s, confirming the calculation is accurate against real timestamps.",
+  "job_id": 619066184056874,
+  "job_name": "dep_optimizer_test_job",
+  "task_count": 4,
+  "runs_analyzed": 1,
+  "independent_pairs_checked": 3,
+  "flagged_pairs": [],
+  "critical_path": {
+    "chain": ["root", "branch_a"],
+    "estimated_seconds": 380.2,
+    "avg_actual_job_seconds": 381.1,
+    "gap_seconds": 0.9
+  },
+  "overall_status": "already_parallelized",
+  "detail": "All 3 independent pair(s) with enough run evidence were confirmed running concurrently in at least one real run -- no serialization issue found.",
+  "errors": {}
+}
