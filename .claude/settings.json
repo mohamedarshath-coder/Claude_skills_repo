@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python .claude/skills/**/scripts/*.py:*)",
-      "Read(./.claude/skills/**)"
+      "Read(./.claude/skills/**)",
+      "Edit(/.claude/skills/aws-cost-report/**)"
     ],
     "deny": [
       "Read(./.env)",

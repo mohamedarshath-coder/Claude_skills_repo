@@ -1,5 +1,5 @@
 {
-  "_fixture_note": "Real output from 2026-07-16, the day this skill was built. Cost Explorer had just been enabled on the account (first-visit auto-enable) and was still backfilling data -- AWS documents up to a 24h delay before GetCostAndUsage returns anything. This fixture captures the REAL degradation path: a DataUnavailableException per section, caught and reported in `errors`, with no crash and no fabricated data. The happy-path (real cost rows, a real anomaly) is pending a follow-up live run once data backfills -- tracked as an open verification item, not silently assumed.",
+  "_fixture_note": "Real output from 2026-07-16, ~1 hour after the account's first-ever Cost Explorer visit. The DataUnavailableException from the initial run (captured in this skill's SKILL.md verification history) has cleared -- both sections now return cleanly with no errors. total_unblended_cost is genuinely 0: this is a fresh AWS free-tier account ('credits cover your free plan costs', per the Billing console) with no billable resources actually deployed yet, not a bug and not hidden data. This fixture demonstrates a THIRD honest state distinct from the first run: not 'Cost Explorer unavailable' and not 'a real anomaly fired' -- 'the query succeeded and genuinely found nothing,' which is exactly what a clean, low-usage account should report.",
   "window_days": 30,
   "region_note": "Cost Explorer has no regional scope of its own -- API calls are pinned to us-east-1 regardless of where resources actually run.",
   "scope_note": "Costs reflect only what this IAM principal's Cost Explorer access can see -- under AWS Organizations consolidated billing, a linked-account principal may see a narrower scope than the full org.",
@@ -7,9 +7,16 @@
   "total_unblended_cost": 0,
   "daily_cost_by_service": [],
   "cost_anomalies": [],
-  "month_over_month": null,
-  "errors": {
-    "daily_cost_by_service": "An error occurred (DataUnavailableException) when calling the GetCostAndUsage operation: Data is not available. Please try to adjust the time period. If just enabled Cost Explorer, data might not be ingested yet",
-    "month_over_month": "An error occurred (DataUnavailableException) when calling the GetCostAndUsage operation: Data is not available. Please try to adjust the time period. If just enabled Cost Explorer, data might not be ingested yet"
-  }
+  "month_over_month": {
+    "this_month_start": "2026-07-01",
+    "days_elapsed_this_month": 16,
+    "this_month_cost_to_date": 0.0,
+    "prior_month_same_day_range": {
+      "start": "2026-06-01",
+      "end": "2026-06-17"
+    },
+    "prior_month_comparable_cost": 0.0,
+    "pct_change_vs_prior_month_same_period": null
+  },
+  "errors": {}
 }
