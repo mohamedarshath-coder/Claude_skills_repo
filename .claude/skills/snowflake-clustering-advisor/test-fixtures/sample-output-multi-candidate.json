@@ -1,0 +1,38 @@
+{
+  "_fixture_note": "Real output from 2026-07-16 against RAW.CLUSTER_TEST_COMPLEX (30M rows, 4.4GB, no clustering key) -- built with 8 REGION-filter queries and 4 CUSTOMER_SEGMENT-filter queries (both columns randomly scattered) plus 3 well-pruning EVENT_TIME queries. Harder than the single-candidate case: the skill had to correctly RANK two real competing candidates by frequency, not just detect one problem column. REGION (8 mentions) correctly ranked above CUSTOMER_SEGMENT (4 mentions); EVENT_TIME correctly excluded entirely.",
+  "schema": "RAW",
+  "table": "CLUSTER_TEST_COMPLEX",
+  "heuristic_note": "Candidate columns are found via text-matching real column names against the non-SELECT-list portion of poorly-pruned queries -- not a SQL parser. It can miss a real filter written unusually, and can't fully rule out a same-named column from a different, joined table.",
+  "table_stats": {
+    "row_count": 30000000,
+    "bytes": 4750882816
+  },
+  "existing_clustering": {
+    "clustered": false,
+    "cluster_by_keys": null
+  },
+  "queries_analyzed": 16,
+  "pruning_threshold_pct": 50.0,
+  "poorly_pruned_query_count": 12,
+  "candidate_clustering_columns": [
+    {
+      "column": "REGION",
+      "mention_count": 8,
+      "avg_pruning_ratio_when_present": 1.0
+    },
+    {
+      "column": "CUSTOMER_SEGMENT",
+      "mention_count": 4,
+      "avg_pruning_ratio_when_present": 1.0
+    }
+  ],
+  "advisory": {
+    "status": "recommend",
+    "detail": "No clustering key currently defined. 12 of 16 queries in the window scanned more than 50% of the table's partitions, and REGION was the most frequent real column in their filter/join text.",
+    "suggested_keys": [
+      "REGION",
+      "CUSTOMER_SEGMENT"
+    ]
+  },
+  "errors": {}
+}
