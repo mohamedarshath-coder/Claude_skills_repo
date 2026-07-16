@@ -1,24 +1,32 @@
 {
-  "_fixture_note": "Real output from 2026-07-16 against RAW.RAW_ORDER_ITEMS (20,000 rows, ~1MB). This is the actual second live run, after fixing a real bug the first run found: SYSTEM$CLUSTERING_INFORMATION errors on a table with no explicit clustering key ('table X is not clustered') rather than returning natural-organization stats -- the script now catches that specific message and reports clustered: false cleanly, with an empty errors object, instead of surfacing it as a data-access failure.",
+  "_fixture_note": "Real output from 2026-07-16 against a deliberately-constructed but genuinely real test table: RAW.CLUSTER_TEST_EVENTS, 60 million rows, 8.8GB, 528 real micro-partitions, built so REGION is randomly scattered relative to physical storage order while EVENT_TIME is physically sorted. 9 real queries were run against it (6 REGION filters, 3 EVENT_TIME range filters); Snowflake's own engine confirmed the intended contrast independently -- every REGION query scanned 528/528 partitions (100%), every EVENT_TIME query scanned only 21/528 (4%). This is the actual real result: all 6 REGION queries correctly identified as poorly-pruned, all 3 EVENT_TIME queries correctly ignored, REGION correctly recommended with a 1.0 average pruning ratio. Table dropped after this test run -- it was throwaway test data, not part of the project's real schema.",
   "schema": "RAW",
-  "table": "RAW_ORDER_ITEMS",
+  "table": "CLUSTER_TEST_EVENTS",
   "heuristic_note": "Candidate columns are found via text-matching real column names against the non-SELECT-list portion of poorly-pruned queries -- not a SQL parser. It can miss a real filter written unusually, and can't fully rule out a same-named column from a different, joined table.",
   "table_stats": {
-    "row_count": 20000,
-    "bytes": 1094656
+    "row_count": 60000000,
+    "bytes": 9465727488
   },
   "existing_clustering": {
     "clustered": false,
     "cluster_by_keys": null
   },
-  "queries_analyzed": 0,
+  "queries_analyzed": 10,
   "pruning_threshold_pct": 50.0,
-  "poorly_pruned_query_count": 0,
-  "candidate_clustering_columns": [],
+  "poorly_pruned_query_count": 6,
+  "candidate_clustering_columns": [
+    {
+      "column": "REGION",
+      "mention_count": 6,
+      "avg_pruning_ratio_when_present": 1.0
+    }
+  ],
   "advisory": {
-    "status": "table_too_small",
-    "detail": "Table is 0.001 GB, below the 1.0 GB threshold this check uses -- clustering overhead (reclustering credits) isn't worth it at this size regardless of query patterns.",
-    "suggested_keys": null
+    "status": "recommend",
+    "detail": "No clustering key currently defined. 6 of 10 queries in the window scanned more than 50% of the table's partitions, and REGION was the most frequent real column in their filter/join text.",
+    "suggested_keys": [
+      "REGION"
+    ]
   },
   "errors": {}
 }
