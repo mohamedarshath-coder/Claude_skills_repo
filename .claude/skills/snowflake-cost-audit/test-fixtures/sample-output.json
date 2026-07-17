@@ -1,6 +1,7 @@
 {
   "_fixture_note": "Anonymized real output from 2026-07-13 (7-day window). Query IDs randomized, warehouse/database names genericized. Used by the fixture-test CI check: assertions are structural (fields present, tables renderable, scope/latency notes carried through), never on exact wording.",
   "window_days": 7,
+  "min_anomaly_credits": 0.05,
   "scope_note": "Totals cover user-managed warehouses only (WAREHOUSE_METERING_HISTORY). Serverless features (tasks, Snowpipe, etc.) bill separately and are not included.",
   "data_latency_note": "ACCOUNT_USAGE views lag real time: up to ~45 min for query history, up to ~3 h for metering.",
   "total_warehouse_credits_used": 1.11,

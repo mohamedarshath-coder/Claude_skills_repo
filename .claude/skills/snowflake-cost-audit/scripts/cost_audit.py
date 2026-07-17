@@ -136,13 +136,20 @@ def get_warehouse_config(cur):
     ]
 
 
-def detect_cost_anomalies(credits_rows, threshold_pct=50):
+def detect_cost_anomalies(credits_rows, threshold_pct=50, min_anomaly_credits=0.05):
     """
     Flags a warehouse whose most recent day of credit usage is more than
     `threshold_pct` above its trailing average over the rest of the window.
     This is the signal a future scheduled (product-loop) version of this
     skill would use to decide whether to speak at all -- see the Loop Tier
     section in SKILL.md.
+
+    `min_anomaly_credits` is a deliberate materiality floor, applied from
+    the start (not deferred as originally planned): a warehouse going
+    from 0.00003 to 0.00006 credits is a real ">50% increase" by the
+    math, but both numbers are financially meaningless -- found live
+    during testing (2026-07-15) and closed here using the same pattern
+    already proven in aws-cost-report's detect_service_anomalies.
     """
     by_warehouse = {}
     for row in credits_rows:
@@ -157,6 +164,8 @@ def detect_cost_anomalies(credits_rows, threshold_pct=50):
         prior_values = [float(r["credits_used"] or 0) for r in prior]
         trailing_avg = sum(prior_values) / len(prior_values) if prior_values else 0
         latest_value = float(latest["credits_used"] or 0)
+        if latest_value < min_anomaly_credits:
+            continue
         if trailing_avg > 0 and latest_value > trailing_avg * (1 + threshold_pct / 100):
             pct_increase = round(((latest_value / trailing_avg) - 1) * 100, 1)
             anomalies.append({
@@ -209,6 +218,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--connection", default=os.environ.get("SNOWFLAKE_CONNECTION_NAME", "default"))
     parser.add_argument("--days", type=int, default=7)
+    parser.add_argument("--min-anomaly-credits", type=float, default=0.05,
+                        help="Minimum latest-day credits for a warehouse to be eligible as a cost anomaly")
     args = parser.parse_args()
 
     try:
@@ -244,10 +255,11 @@ def main():
 
     total_credits = sum(float(r.get("credits_used", 0) or 0) for r in (credits_rows or []))
     flags = flag_idle_or_oversized(config_rows or [], activity_rows or [])
-    anomalies = detect_cost_anomalies(credits_rows or [])
+    anomalies = detect_cost_anomalies(credits_rows or [], min_anomaly_credits=args.min_anomaly_credits)
 
     output = {
         "window_days": args.days,
+        "min_anomaly_credits": args.min_anomaly_credits,
         "scope_note": "Totals cover user-managed warehouses only (WAREHOUSE_METERING_HISTORY). Serverless features (tasks, Snowpipe, etc.) bill separately and are not included.",
         "data_latency_note": "ACCOUNT_USAGE views lag real time: up to ~45 min for query history, up to ~3 h for metering.",
         "total_warehouse_credits_used": round(total_credits, 2),

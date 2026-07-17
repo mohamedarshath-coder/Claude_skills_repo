@@ -59,6 +59,18 @@ def run_tests():
     check("zero-usage prior days (trailing avg 0) do not divide-by-zero or flag",
           detect_cost_anomalies([day(10, 0), day(11, 3.0)]) == [])
 
+    # --- materiality floor (found live 2026-07-15, deferred, now closed) ---
+    # A warehouse going from 0.00003 to 0.00006 credits is technically a
+    # >50% increase, but both numbers are financially meaningless -- the
+    # exact real pattern that originally revealed this gap.
+    near_zero_rows = [day(10, 0.00003), day(11, 0.00003), day(12, 0.00006)]
+    check("near-zero swing is suppressed by the default materiality floor",
+          detect_cost_anomalies(near_zero_rows) == [])
+    check("the same near-zero swing fires once the floor is lowered below it",
+          len(detect_cost_anomalies(near_zero_rows, min_anomaly_credits=0.00001)) == 1)
+    check("a real, meaningful anomaly still fires with the default floor in place",
+          len(detect_cost_anomalies([day(10, 1.0), day(11, 1.0), day(12, 4.2)], min_anomaly_credits=0.05)) == 1)
+
     # --- flag_idle_or_oversized: possibly_oversized branch (never fired live) ---
     config = [{"warehouse_name": "BIG_WH", "warehouse_size": "2X-LARGE", "auto_suspend": 60, "auto_resume": "true"}]
     activity = [{"warehouse_name": "BIG_WH", "avg_query_seconds": 3.0, "query_count": 500}]
