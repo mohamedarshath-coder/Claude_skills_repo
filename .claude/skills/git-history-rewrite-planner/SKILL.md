@@ -46,7 +46,7 @@ Render as Markdown:
 
 Built and tested against real, throwaway git repositories (created and destroyed purely for this test, never this project's repo).
 
-**Five real bugs found and fixed before this was ever trustworthy** — this skill has had more real bugs found via live testing than any other in this repo, which is fitting given it's also the highest-risk one:
+**Seven real bugs found and fixed before this was ever trustworthy** — this skill has had more real bugs found via live testing than any other in this repo, which is fitting given it's also the highest-risk one (bugs 6-7 covered in their own section below, added when regex pattern support closed a documented backlog item):
 
 1. **The disposable clone's "always deleted" safety promise was silently broken on Windows.** The original cleanup used `shutil.rmtree(temp_dir, ignore_errors=True)` — `ignore_errors=True` silently swallowed a `PermissionError` caused by git's own read-only pack/index files, meaning the disposable clone (containing the very secret it was created to purge) was left behind on disk after *every single run*, with no error or warning at all. Found live by checking for leftover temp directories after a real run. Fixed with the standard Windows read-only-clearing retry handler (`os.chmod` + retry), verified across multiple runs afterward with zero leftover directories.
 2. **The scanner used `git grep -I`, which explicitly skips binary files.** A secret embedded in any file git classifies as binary would be completely invisible to the scan. Fixed to `git grep -a` (treat every file as text).
@@ -62,8 +62,19 @@ Built and tested against real, throwaway git repositories (created and destroyed
 
 ## Known limitations (honest, not hidden)
 
-- **Matching is literal and case-sensitive.** A secret that appears with different casing across history (`TokenValue_ABC123` vs. `tokenvalue_abc123`) needs a separate `--secret-pattern` entry for each variant — confirmed live: the exact-case form was correctly redacted while a differently-cased real occurrence elsewhere was correctly left untouched, since that's genuinely a different literal string. `filter-repo` supports `regex:`-prefixed patterns for this; this script does not yet generate them.
+- **Matching is literal and case-sensitive by default.** A secret that appears with different casing across history (`TokenValue_ABC123` vs. `tokenvalue_abc123`) needs a separate `--secret-pattern` entry for each variant — confirmed live: the exact-case form was correctly redacted while a differently-cased real occurrence elsewhere was correctly left untouched, since that's genuinely a different literal string.
 - **Binary blob content cannot be redacted by text replacement** — see the `max_iterations_reached` / escalation-note path above; the real fix for that case is whole-file removal (`--path --invert-paths`), not text substitution.
+
+## Regex pattern support, and a real scan/redaction mismatch it fixed
+
+A `--secret-pattern` can now be prefixed with `regex:` (the same convention `git filter-repo` itself uses) to match a variable secret shape instead of one exact string — e.g. `regex:sk_live_[a-z0-9]+` catches every token matching that shape in one pass, not just one exact value.
+
+**Building this surfaced two real, pre-existing bugs, not just a missing feature:**
+
+1. **A literal pattern was silently being matched as regex, causing false positives.** The scanner used bare `git grep -e`, which defaults to regex interpretation — a perfectly ordinary literal secret shape like `sk.live.abc123` had its `.` match *any* character, so the scan reported a match against a completely unrelated string (`skXliveXabc123`) that never actually contained the real secret. Meanwhile `git filter-repo` treats a plain pattern as literal by default — a real mismatch between what the scanner considered "found" and what the redaction step would actually touch. Found live by deliberately constructing this exact scenario. Fixed: a plain pattern now uses `git grep -F` (fixed-string/literal), matching `filter-repo`'s own default semantics exactly.
+2. **`git grep`'s default regex dialect silently failed to match ordinary regex patterns.** Once `regex:`-prefixed patterns were added, a completely standard pattern like `sk_live_[a-z0-9]+` matched **zero** real occurrences — `git grep`'s default mode is POSIX *Basic* regex, where `+`, `?`, and `{n,m}` are not special characters without a backslash, unlike the Python-style regex most people would write. Found live immediately after adding regex support, by testing the exact pattern above against two real, distinct tokens matching that shape. Fixed: a `regex:`-prefixed pattern now uses `git grep -P` (Perl-compatible), the closest available match to the Python `re` semantics `filter-repo` itself uses to interpret its own `regex:` patterns.
+
+Both fixes were re-verified live: the literal-pattern case now correctly matches only the real secret and leaves the unrelated string alone; the regex case now correctly matches and redacts both real, distinct tokens sharing the pattern's shape in one pass.
 
 ## Verification status per branch (honest status, not hidden)
 
@@ -79,6 +90,8 @@ Built and tested against real, throwaway git repositories (created and destroyed
 | Precision: a decoy value never touched | ✅ |
 | Secret existing ONLY in an annotated tag message | ✅ (the most dangerous bug found this session — real bug found and fixed) |
 | Case-sensitivity limitation, correctly left unredacted | ✅ (confirmed as expected, honest behavior, not a bug) |
+| Literal pattern with regex metacharacters, no false-positive matching | ✅ (real bug found and fixed — was silently matched as regex, causing a false-positive hit on unrelated text) |
+| `regex:`-prefixed pattern matching a variable secret shape | ✅ (real bug found and fixed — `git grep`'s default BRE dialect silently failed to match ordinary quantifiers like `+`; fixed via `-P`) |
 | Secret embedded in a commit message, not just file content | ✅ (real bug found and fixed — `--replace-message` was missing entirely, both from redaction and from scanning) |
 | A secret that requires a regex (not literal) pattern to match | not yet tested — `--replace-text` supports regex rules with a `regex:` prefix; this script only ever generates literal rules |
 
