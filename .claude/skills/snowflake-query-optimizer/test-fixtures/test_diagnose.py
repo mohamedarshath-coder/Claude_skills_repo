@@ -17,7 +17,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-from query_optimizer import diagnose  # noqa: E402
+from query_optimizer import diagnose, rank_results  # noqa: E402
 
 
 def make_row(**overrides):
@@ -87,7 +87,40 @@ def run_tests():
           set(issue_names(bad)) == {"spilling_to_remote_storage", "poor_partition_pruning",
                                     "warehouse_queueing", "cold_start_provisioning"})
 
-    print(f"\n{len(failures)} failure(s) of 13 tests")
+    # --- rank_results: the top-10-by-duration coverage gap, found live 2026-07-16 ---
+    # A real spilling query (1.5s) ranked outside a top-10-by-duration
+    # window where the slowest query ran 13.8s, and was completely
+    # missed by the old "SQL LIMIT before diagnosis" design.
+    def r(qid, ms, issues):
+        return {"query_id": qid, "execution_ms": ms, "issues": issues}
+
+    finding = [{"issue": "spilling_to_local_storage", "severity": "medium", "evidence": "x", "recommendation": "y"}]
+    pool = [r("slow_clean_1", 13800, []), r("slow_clean_2", 9000, []), r("slow_clean_3", 8000, []),
+            r("modest_but_flagged", 1500, finding)]
+    ranked = rank_results(pool, limit=3)
+    check("REGRESSION: a flagged query ranked outside the duration cutoff is still included",
+          any(x["query_id"] == "modest_but_flagged" for x in ranked))
+    check("flagged query is ranked ABOVE clean queries despite lower duration",
+          ranked[0]["query_id"] == "modest_but_flagged")
+
+    many_issues_pool = [r(f"bad_{i}", 100 - i, finding) for i in range(15)]
+    ranked_many = rank_results(many_issues_pool, limit=3)
+    check("every flagged query is included even when there are more issues than --limit",
+          len(ranked_many) == 15)
+
+    clean_pool = [r(f"clean_{i}", 100 - i, []) for i in range(10)]
+    ranked_clean = rank_results(clean_pool, limit=3)
+    check("issue-free results are capped at --limit when nothing is flagged",
+          len(ranked_clean) == 3)
+    check("issue-free results still favor higher duration first",
+          [x["query_id"] for x in ranked_clean] == ["clean_0", "clean_1", "clean_2"])
+
+    mixed_pool = [r("bad_1", 50, finding), r("clean_a", 200, []), r("clean_b", 150, []), r("clean_c", 100, [])]
+    ranked_mixed = rank_results(mixed_pool, limit=2)
+    check("with 1 flagged query and limit=2, exactly 1 clean query fills the remaining slot",
+          len(ranked_mixed) == 2 and ranked_mixed[0]["query_id"] == "bad_1" and ranked_mixed[1]["query_id"] == "clean_a")
+
+    print(f"\n{len(failures)} failure(s) of 18 tests")
     return 1 if failures else 0
 
 

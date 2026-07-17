@@ -17,7 +17,7 @@ Use this skill when asked to: review Snowflake query performance, diagnose why a
 
 1. Confirm which Snowflake connection profile to use (default: `default`, overridable via `--connection`). Configured locally by the user ahead of time in `~/.snowflake/connections.toml` — this skill never asks for or handles credentials directly.
 2. Run `python {{SKILL_DIR}}/scripts/query_optimizer.py`:
-   - With no arguments: analyzes the top 10 slowest **user-warehouse** queries in the last 7 days (`--days N` / `--limit N` to adjust)
+   - With no arguments: scans the 50 slowest **user-warehouse** queries in the last 7 days (`--days N` / `--scan-limit N` to adjust), diagnoses all of them, then reports every flagged query plus up to `--limit` (default 10) issue-free queries for context
    - With `--query-id <id>`: analyzes exactly one query by ID (use this when a specific slow query has already been identified)
 3. The script reads `QUERY_HISTORY`'s own execution-statistics columns (no need to parse the per-operator profile tree) and flags, per query:
    - **Spilling to remote storage** (high severity) or **local storage** (medium) — warehouse undersized for the query's working set
@@ -54,16 +54,19 @@ Always cite the actual numbers (bytes spilled, partition counts, ms queued) behi
 | Clean query → zero issues (no false positives) | ✅ (real dbt queries) | ✅ |
 | `spilling_to_local_storage` | ✅ **live-fired** — a deliberate 12M-row cross join (`RAW_CUSTOMERS` × `RAW_PRODUCTS`, `GROUP BY`/`ORDER BY`) on an X-Small warehouse spilled 26,017,792 bytes to local disk, correctly flagged with exact evidence | ✅ `test-fixtures/test_diagnose.py` |
 | `spilling_to_remote_storage` | ❌ never occurred naturally — the same stress query only tipped into *local* spill (X-Small handled the 12M rows almost entirely in memory, 1.5s runtime); a remote spill needs a larger/longer-running working set | ✅ |
-| `poor_partition_pruning` | ❌ never occurred naturally | ✅ (incl. exact-threshold boundaries) |
+| `poor_partition_pruning` | ✅ **live-fired** (2026-07-17) — `SELECT * FROM RAW.CLUSTER_TEST_EVENTS` (a full-table scan left over from `snowflake-clustering-advisor`'s own testing) scanned 528 of 528 partitions (100%), correctly flagged | ✅ (incl. exact-threshold boundaries) |
 | `warehouse_queueing` | ❌ never occurred naturally | ✅ |
 | `cold_start_provisioning` | ❌ never occurred naturally | ✅ |
 | Attribution→duration ranking fallback | ❌ role can read attribution, so never fired | structurally implemented, untested |
+| `rank_results` (issues-first ranking, see fix below) | ✅ real 1.46s spilling query now correctly included in a 14-day scan where the slowest query ran 103.7s | ✅ (never-truncate-a-flagged-query, fill-remaining-slots-with-clean, favor-duration-among-equals) |
 
-The `spilling_to_local_storage` branch is now genuinely live-verified, not just unit-tested — a real, deliberately-constructed stress query (a cross join most people would write by accident, not on purpose) triggered it with exact byte-level evidence matching the script's own output. The remaining branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once.
+The `spilling_to_local_storage` and `poor_partition_pruning` branches are now genuinely live-verified, not just unit-tested. The remaining branches are covered by unit tests running the real `diagnose()` function against constructed rows — including boundary cases (exactly 50% pruning, exactly 1000 ms queueing, `None` handling) and a compound case tripping all four at once.
 
-## Known limitation: default scan can miss a flagged query entirely
+## Fixed: the default scan used to be able to miss a flagged query entirely
 
-The default (no-`--query-id`) mode only analyzes the **top 10 slowest queries by duration** in the window — found live (2026-07-15): the account's known `spilling_to_local_storage` query (26MB spilled, 1.46s execution) fell outside the top 10 in a 14-day window, where the slowest 10 queries ranged 1.9s-13.8s with zero issues among them. A query can have a real, evidence-backed issue and still never be examined by the default scan if enough other queries simply ran longer without any issue at all. This surfaced because `unified-cost-optimizer` calls this script with no `--query-id` and reported a clean query-performance section despite the known issue existing in the account. Not a bug in `diagnose()` itself — every query it actually examines is judged correctly — but a real gap in *which* queries the default mode chooses to examine. Duration is a proxy for "worth checking," not a guarantee of catching every real issue. Not yet fixed; a future version could rank candidates by "has any flagged issue" first with duration as a tiebreaker, or widen the default scan beyond top-10.
+**Closed 2026-07-17.** Found live (2026-07-15): the default (no-`--query-id`) mode only analyzed the **top 10 slowest queries by duration** in the window, and the account's known `spilling_to_local_storage` query (26MB spilled, 1.46s execution) fell outside the top 10 in a 14-day window where the slowest 10 queries ranged 1.9s-13.8s with zero issues among them. A query could have a real, evidence-backed issue and still never be examined if enough other queries simply ran longer without any issue at all.
+
+Fixed with two changes: the SQL now fetches a much wider candidate pool (`--scan-limit`, default 50, up from the old implicit 10) before diagnosis ever runs, and a new `rank_results()` function ranks the diagnosed output issues-first, duration second — **every flagged query is always included in the final output, never truncated away by `--limit`**; only the issue-free queries shown for context are capped at `--limit`. Re-verified live against the real account afterward: the same 1.46s query that was originally missed is now correctly present in a 14-day scan, and the wider pool surfaced 6 more genuine issues that had never been seen before, including the first-ever live firing of `poor_partition_pruning`.
 
 ## Loop tier & future promotion
 

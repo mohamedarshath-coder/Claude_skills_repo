@@ -1,5 +1,5 @@
 {
-  "_fixture_note": "Three entries: one anonymized real clean query, one REAL local-storage-spill result (a deliberate 12M-row cross join actually run in the account, byte count genuine), and one synthetic remote-storage-spill + poor-pruning query (to exercise those two still-unfired branches' schema). Used by the fixture-test CI check: assertions are structural (issue schema present, severity/evidence/recommendation fields populated), never on exact wording.",
+  "_fixture_note": "Three entries: one anonymized real clean query, one REAL local-storage-spill result (a deliberate 12M-row cross join actually run in the account, byte count genuine), and one synthetic remote-storage-spill + poor-pruning query (to exercise those two branches' schema before either fired live). Update 2026-07-17: poor_partition_pruning has since genuinely fired live too (a real SELECT * full-table scan, 528/528 partitions) -- see the SKILL.md's verification table for the real numbers; this fixture's synthetic entry is kept as-is since it still validates the schema and remote-storage-spill remains unfired. Used by the fixture-test CI check: assertions are structural (issue schema present, severity/evidence/recommendation fields populated), never on exact wording.",
   "window_days": 14,
   "analyzed_query_count": 3,
   "queries_with_issues": 2,
