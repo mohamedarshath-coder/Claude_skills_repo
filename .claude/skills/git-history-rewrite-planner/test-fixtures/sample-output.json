@@ -1,0 +1,28 @@
+{
+  "_fixture_note": "Real output from 2026-07-17 against a genuine throwaway test git repo (built and destroyed purely for this test, never the project repo) with a fake secret committed across 2 files/4 commits. This run only ever touched a disposable clone in a temp directory -- independently confirmed afterward that the real test repo's history was completely unchanged. Path is real but harmless (a scratch temp directory, not a real credential).",
+  "repo_path": "C:\\Users\\mohamed.arshath.lv\\AppData\\Local\\Temp\\claude\\d--projects-claude-skills\\28805ab2-80ef-4b30-a4ec-beaf6a4084fb\\scratchpad\\rewrite_test_repo",
+  "secret_patterns_checked": ["super_secret_leaked_value_12345"],
+  "commits_containing_secret_before_rewrite": [
+    "756bc1d483d3", "7fb83a30ca29", "bea650433981", "fb0a0ab9945f"
+  ],
+  "commit_count_before_rewrite": 4,
+  "converged": true,
+  "stopped_reason": "verified_clean_after_redaction",
+  "iterations_run": 1,
+  "iteration_log": [
+    {"iteration": 1, "remaining_matches_after_redaction": 0}
+  ],
+  "remaining_matches_after_verification": {
+    "super_secret_leaked_value_12345": []
+  },
+  "escalation_note": null,
+  "real_repo_action_taken": false,
+  "plan_for_the_real_repo": {
+    "note": "None of the steps below were run against your real repo or remote -- only against a disposable, deleted-afterward clone, to PROVE this plan actually works before you run it for real.",
+    "1_make_a_fresh_mirror_clone": "git clone --mirror <repo> <mirror-dir>",
+    "2_write_replacements_file": ["super_secret_leaked_value_12345==>***REMOVED-BY-REWRITE-PLANNER***"],
+    "3_run_filter_repo_in_the_mirror": "git filter-repo --replace-text replacements.txt --force",
+    "4_force_push_the_rewritten_history": "git push --force --all && git push --force --tags",
+    "5_mandatory_warning": "Every commit after the earliest rewritten one gets a new SHA. Every other clone/fork of this repo is now diverged -- everyone with a clone MUST delete it and re-clone fresh; a normal `git pull` will not work and can resurrect the purged secret."
+  }
+}
