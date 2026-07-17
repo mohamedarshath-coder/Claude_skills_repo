@@ -15,6 +15,14 @@ connections.toml
 # every commit -- caught by fixture-testing the CI setup itself.
 !tools/ci/secrets_scan.py
 
+# Exception: test-fixture JSON files legitimately describe secret-related
+# test scenarios by name (e.g. sample-output-tag-only-secret.json) without
+# containing any real credential -- the same *secret* rule was silently
+# excluding a real, needed fixture from git-history-rewrite-planner. Real
+# secret-shaped content in these files is still caught by secrets_scan.py
+# scanning the actual content, not the filename.
+!.claude/skills/*/test-fixtures/*.json
+
 # Personal overrides (per-user, not shared)
 CLAUDE.local.md
 .claude/settings.local.json

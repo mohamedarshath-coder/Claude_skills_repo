@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-from rewrite_planner import build_replacements_file, _force_remove_readonly, scan_commit_messages  # noqa: E402
+from rewrite_planner import build_replacements_file, _force_remove_readonly, scan_commit_messages, scan_tag_messages  # noqa: E402
 
 failures = []
 
@@ -79,6 +79,24 @@ with tempfile.TemporaryDirectory() as tmp:
 
     clean_findings = scan_commit_messages(tmp, ["never_appears_anywhere"])
     check("a pattern that appears in no message returns zero hits", clean_findings["never_appears_anywhere"] == [])
+
+    # --- scan_tag_messages: regression test for the most dangerous bug found ---
+    # (a secret existing ONLY in an annotated tag's own message, nowhere
+    # in any file or commit, was completely invisible to every prior
+    # scan -- the planner confidently reported "nothing to purge" and
+    # never even attempted a redaction.)
+    git("tag", "-a", "v1.0", "-m", "Release v1.0 -- rollback token TAG_ONLY_SECRET_456 if needed")
+
+    tag_findings = scan_tag_messages(tmp, ["TAG_ONLY_SECRET_456"])
+    check("a secret that exists ONLY in a tag message is found", len(tag_findings["TAG_ONLY_SECRET_456"]) == 1)
+    check("the hit is labeled as a tag-message hit", tag_findings["TAG_ONLY_SECRET_456"][0]["path"] == "<tag message>")
+    check("the tag ref name is preserved, not mangled", tag_findings["TAG_ONLY_SECRET_456"][0]["commit"] == "refs/tags/v1.0")
+
+    check("scan_commit_messages alone does NOT see the tag-only secret (proves the two scans are genuinely separate)",
+          scan_commit_messages(tmp, ["TAG_ONLY_SECRET_456"])["TAG_ONLY_SECRET_456"] == [])
+
+    clean_tag_findings = scan_tag_messages(tmp, ["never_appears_anywhere"])
+    check("a pattern in no tag returns zero hits", clean_tag_findings["never_appears_anywhere"] == [])
 
 if failures:
     print("FAILED:")
