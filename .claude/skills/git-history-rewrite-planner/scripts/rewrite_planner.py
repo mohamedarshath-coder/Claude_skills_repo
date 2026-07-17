@@ -93,6 +93,30 @@ def clone_disposable(repo_path, temp_dir):
     return dest
 
 
+def scan_commit_messages(repo_dir, patterns):
+    """Checks every commit's and tag's full message text -- found live:
+    a secret pasted into a commit message survives `--replace-text`
+    entirely (that flag only rewrites file/blob content), and `git grep`
+    never looks at commit messages at all, so relying on scan_history()
+    alone would let a message-embedded secret report as "verified clean"
+    while it's still sitting in the rewritten history untouched. Returns
+    {pattern: [{commit, path}]}, using the synthetic path "<commit
+    message>" so a message hit is clearly distinguishable from a file hit."""
+    result = run(["git", "-C", repo_dir, "log", "--all", "--format=%H%x00%B%x00"])
+    entries = [e for e in result.stdout.split("\x00") if e]
+    findings = {p: [] for p in patterns}
+    commit_sha, message = None, None
+    for i, chunk in enumerate(entries):
+        if i % 2 == 0:
+            commit_sha = chunk.strip()
+        else:
+            message = chunk
+            for pattern in patterns:
+                if pattern in message:
+                    findings[pattern].append({"commit": commit_sha, "path": "<commit message>"})
+    return findings
+
+
 def scan_history(repo_dir, patterns):
     """Greps every commit's full tree (not just diffs) for each pattern --
     a diff-only pickaxe search would miss a commit that inherits the
@@ -104,7 +128,12 @@ def scan_history(repo_dir, patterns):
     not obviously plain text) is completely invisible to `-I`, which
     would make this scanner silently report "nothing to purge" while the
     secret is still sitting in history. A security scanner that fails
-    silently on binary content is worse than no scanner at all."""
+    silently on binary content is worse than no scanner at all.
+
+    Also checks commit messages via scan_commit_messages() -- file-tree
+    content and commit messages are two genuinely separate surfaces a
+    secret can leak into, and `git filter-repo` needs a different flag
+    for each (see apply_redaction)."""
     commits = run(["git", "-C", repo_dir, "rev-list", "--all"]).stdout.split()
     findings = {p: [] for p in patterns}
     if not commits:
@@ -119,6 +148,10 @@ def scan_history(repo_dir, patterns):
         for line in result.stdout.splitlines():
             commit, _, path = line.partition(":")
             findings[pattern].append({"commit": commit, "path": path})
+
+    message_findings = scan_commit_messages(repo_dir, patterns)
+    for pattern, hits in message_findings.items():
+        findings[pattern].extend(hits)
     return findings
 
 
@@ -131,7 +164,16 @@ def build_replacements_file(patterns, redaction_text, temp_dir):
 
 
 def apply_redaction(repo_dir, replacements_file):
-    run(["git", "filter-repo", "--replace-text", replacements_file, "--force"], cwd=repo_dir)
+    """--replace-text and --replace-message are two SEPARATE filter-repo
+    flags -- found live: passing only --replace-text leaves a secret
+    pasted into a commit message completely untouched, since that flag
+    only rewrites file/blob content. Both are needed, every time, to
+    cover both real surfaces a secret can leak into."""
+    run(
+        ["git", "filter-repo", "--replace-text", replacements_file,
+         "--replace-message", replacements_file, "--force"],
+        cwd=repo_dir,
+    )
 
 
 def main():
@@ -202,7 +244,7 @@ def main():
             )
 
         mirror_clone_cmd = f"git clone --mirror {repo_path} <mirror-dir>"
-        filter_cmd = "git filter-repo --replace-text replacements.txt --force"
+        filter_cmd = "git filter-repo --replace-text replacements.txt --replace-message replacements.txt --force"
         replacements_preview = [f"{p}==>{args.redaction_text}" for p in args.secret_pattern]
         push_cmd = "git push --force --all && git push --force --tags"
 

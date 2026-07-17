@@ -1,11 +1,11 @@
 {
-  "_fixture_note": "Real output from 2026-07-17 against a genuine throwaway test git repo (built and destroyed purely for this test, never the project repo) with a fake secret committed across 2 files/4 commits. This run only ever touched a disposable clone in a temp directory -- independently confirmed afterward that the real test repo's history was completely unchanged. Path is real but harmless (a scratch temp directory, not a real credential).",
-  "repo_path": "C:\\Users\\mohamed.arshath.lv\\AppData\\Local\\Temp\\claude\\d--projects-claude-skills\\28805ab2-80ef-4b30-a4ec-beaf6a4084fb\\scratchpad\\rewrite_test_repo",
-  "secret_patterns_checked": ["super_secret_leaked_value_12345"],
+  "_fixture_note": "Real output from 2026-07-17 against a genuine, more complex throwaway test git repo (built and destroyed purely for this test, never the project repo): 2 real secrets, a decoy value, a real branch + merge (not a linear chain), and one secret deliberately also pasted into a commit message. This exact scenario is what surfaced the third real bug in this skill: git filter-repo --replace-text never touches commit messages, and the scanner never checked them either -- both fixed, and this output reflects the fixed, independently-verified-by-hand behavior. The plan_for_the_real_repo command now correctly includes --replace-message alongside --replace-text.",
+  "repo_path": "C:\\Users\\mohamed.arshath.lv\\AppData\\Local\\Temp\\claude\\d--projects-claude-skills\\28805ab2-80ef-4b30-a4ec-beaf6a4084fb\\scratchpad\\rewrite_test_complex",
+  "secret_patterns_checked": ["CorrectHorseBattery99", "sk_live_9f8e7d6c5b4a3210"],
   "commits_containing_secret_before_rewrite": [
-    "756bc1d483d3", "7fb83a30ca29", "bea650433981", "fb0a0ab9945f"
+    "23453e0b922f", "2ff7649cd036", "56f16d2a576d", "86a3586701b5", "b4e2de84d91d", "fb90f55cf1fd"
   ],
-  "commit_count_before_rewrite": 4,
+  "commit_count_before_rewrite": 6,
   "converged": true,
   "stopped_reason": "verified_clean_after_redaction",
   "iterations_run": 1,
@@ -13,15 +13,19 @@
     {"iteration": 1, "remaining_matches_after_redaction": 0}
   ],
   "remaining_matches_after_verification": {
-    "super_secret_leaked_value_12345": []
+    "CorrectHorseBattery99": [],
+    "sk_live_9f8e7d6c5b4a3210": []
   },
   "escalation_note": null,
   "real_repo_action_taken": false,
   "plan_for_the_real_repo": {
     "note": "None of the steps below were run against your real repo or remote -- only against a disposable, deleted-afterward clone, to PROVE this plan actually works before you run it for real.",
     "1_make_a_fresh_mirror_clone": "git clone --mirror <repo> <mirror-dir>",
-    "2_write_replacements_file": ["super_secret_leaked_value_12345==>***REMOVED-BY-REWRITE-PLANNER***"],
-    "3_run_filter_repo_in_the_mirror": "git filter-repo --replace-text replacements.txt --force",
+    "2_write_replacements_file": [
+      "CorrectHorseBattery99==>***REMOVED-BY-REWRITE-PLANNER***",
+      "sk_live_9f8e7d6c5b4a3210==>***REMOVED-BY-REWRITE-PLANNER***"
+    ],
+    "3_run_filter_repo_in_the_mirror": "git filter-repo --replace-text replacements.txt --replace-message replacements.txt --force",
     "4_force_push_the_rewritten_history": "git push --force --all && git push --force --tags",
     "5_mandatory_warning": "Every commit after the earliest rewritten one gets a new SHA. Every other clone/fork of this repo is now diverged -- everyone with a clone MUST delete it and re-clone fresh; a normal `git pull` will not work and can resurrect the purged secret."
   }
