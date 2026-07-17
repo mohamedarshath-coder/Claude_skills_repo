@@ -43,6 +43,7 @@ Requires: git (>= 2.24) and the `git-filter-repo` PyPI package on PATH.
 import argparse
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -93,6 +94,35 @@ def clone_disposable(repo_path, temp_dir):
     return dest
 
 
+REGEX_PREFIX = "regex:"
+
+
+def is_regex_pattern(pattern):
+    """`git filter-repo`'s own convention: a pattern prefixed with
+    'regex:' is a regex; anything else is literal text. This script uses
+    the identical convention so a pattern behaves the same way in
+    scanning as it will in redaction."""
+    return pattern.startswith(REGEX_PREFIX)
+
+
+def pattern_body(pattern):
+    return pattern[len(REGEX_PREFIX):] if is_regex_pattern(pattern) else pattern
+
+
+def text_contains_pattern(text, pattern):
+    """Found live: a literal-looking pattern containing regex metacharacters
+    (e.g. 'sk.live.abc123', a real secret shape) was being matched with
+    `in` for messages/tags but with unanchored regex via `git grep -e`
+    for file content -- an inconsistency that could cause a literal
+    secret to go undetected in messages while over-matching unrelated
+    text in files (the '.' in a real API-key-shaped secret matches ANY
+    character in regex mode). This function makes messages/tags use the
+    exact same regex-vs-literal decision as the file-content scan."""
+    if is_regex_pattern(pattern):
+        return re.search(pattern_body(pattern), text) is not None
+    return pattern in text
+
+
 def scan_tag_messages(repo_dir, patterns):
     """Checks every ANNOTATED TAG's own message -- a real, separate git
     object with its own text, distinct from any commit's message. Found
@@ -115,7 +145,7 @@ def scan_tag_messages(repo_dir, patterns):
             continue
         refname, contents = parts
         for pattern in patterns:
-            if pattern in contents:
+            if text_contains_pattern(contents, pattern):
                 findings[pattern].append({"commit": refname.strip(), "path": "<tag message>"})
     return findings
 
@@ -140,7 +170,7 @@ def scan_commit_messages(repo_dir, patterns):
         else:
             message = chunk
             for pattern in patterns:
-                if pattern in message:
+                if text_contains_pattern(message, pattern):
                     findings[pattern].append({"commit": commit_sha, "path": "<commit message>"})
     return findings
 
@@ -164,13 +194,33 @@ def scan_history(repo_dir, patterns):
     and its own filter-repo flag to fix (see apply_redaction). The file-
     tree grep is skipped if there are zero commits, but the message/tag
     scans always run regardless -- a tag can't exist without at least
-    one commit in practice, but there's no reason to couple them."""
+    one commit in practice, but there's no reason to couple them.
+
+    Uses `git grep -F` (fixed string / literal) for a plain pattern, and
+    real regex matching only for a `regex:`-prefixed one -- found live: a
+    literal-looking secret containing regex metacharacters (e.g.
+    'sk.live.abc123', a realistic API-key shape) was matched via
+    unanchored regex by default, so its '.' matched ANY character and
+    the scan reported a false-positive hit on a completely unrelated
+    string. `git filter-repo` treats a plain pattern as literal too --
+    this was a real scan/redaction semantic mismatch, not just a missing
+    feature."""
     findings = {p: [] for p in patterns}
     commits = run(["git", "-C", repo_dir, "rev-list", "--all"]).stdout.split()
     if commits:
         for pattern in patterns:
+            # -P (Perl-compatible) for regex patterns, not bare -e --
+            # found live: git grep's default regex dialect is POSIX BASIC
+            # regex, where `+`, `?`, `{n,m}` are NOT special without a
+            # backslash. A pattern like "sk_live_[a-z0-9]+" (ordinary
+            # Python-style regex, exactly what a `regex:`-prefixed
+            # pattern looks like) silently matched ZERO real occurrences
+            # under bare -e, while both real occurrences existed. -P uses
+            # Perl/Python-like semantics, matching what git filter-repo
+            # itself uses to interpret a `regex:`-prefixed replacement.
+            grep_flag = "-P" if is_regex_pattern(pattern) else "-F"
             result = run(
-                ["git", "-C", repo_dir, "grep", "-a", "-l", "-e", pattern] + commits,
+                ["git", "-C", repo_dir, "grep", "-a", "-l", grep_flag, pattern_body(pattern)] + commits,
                 check=False,
             )
             if result.returncode not in (0, 1):  # 1 = no matches, both are valid outcomes

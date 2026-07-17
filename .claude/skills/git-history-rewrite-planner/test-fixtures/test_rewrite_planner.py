@@ -15,7 +15,10 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-from rewrite_planner import build_replacements_file, _force_remove_readonly, scan_commit_messages, scan_tag_messages  # noqa: E402
+from rewrite_planner import (  # noqa: E402
+    build_replacements_file, _force_remove_readonly, scan_commit_messages,
+    scan_tag_messages, is_regex_pattern, pattern_body, text_contains_pattern,
+)
 
 failures = []
 
@@ -97,6 +100,28 @@ with tempfile.TemporaryDirectory() as tmp:
 
     clean_tag_findings = scan_tag_messages(tmp, ["never_appears_anywhere"])
     check("a pattern in no tag returns zero hits", clean_tag_findings["never_appears_anywhere"] == [])
+
+# --- regex vs. literal pattern handling: regression tests for two real bugs ---
+
+check("a plain pattern is never treated as regex", is_regex_pattern("plain_secret_123") is False)
+check("a regex: prefixed pattern is detected as regex", is_regex_pattern("regex:sk_live_[a-z0-9]+") is True)
+check("pattern_body strips the regex: prefix", pattern_body("regex:sk_live_[a-z0-9]+") == "sk_live_[a-z0-9]+")
+check("pattern_body leaves a plain pattern unchanged", pattern_body("plain_secret_123") == "plain_secret_123")
+
+# REGRESSION: found live -- a literal-looking secret containing regex
+# metacharacters (a real API-key shape) was matched via unanchored
+# regex, so 'sk.live.abc123' incorrectly matched an unrelated string
+# 'skXliveXabc123' because '.' means "any character" in regex mode.
+check("a literal pattern with a period does NOT match a different character in that position",
+      text_contains_pattern("not_the_secret: skXliveXabc123", "sk.live.abc123") is False)
+check("the same literal pattern DOES match the real, exact string",
+      text_contains_pattern("api_key: sk.live.abc123", "sk.live.abc123") is True)
+
+# A genuine regex: pattern must still match real regex semantics (Python's re).
+check("a regex: pattern with a quantifier matches a real occurrence",
+      text_contains_pattern("key: sk_live_aaaa1111", "regex:sk_live_[a-z0-9]+") is True)
+check("a regex: pattern with a quantifier does not match unrelated text",
+      text_contains_pattern("nothing interesting here", "regex:sk_live_[a-z0-9]+") is False)
 
 if failures:
     print("FAILED:")
