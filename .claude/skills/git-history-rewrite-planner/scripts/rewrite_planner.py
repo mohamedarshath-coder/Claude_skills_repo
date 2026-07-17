@@ -93,15 +93,43 @@ def clone_disposable(repo_path, temp_dir):
     return dest
 
 
+def scan_tag_messages(repo_dir, patterns):
+    """Checks every ANNOTATED TAG's own message -- a real, separate git
+    object with its own text, distinct from any commit's message. Found
+    live: `git log --all` (used by scan_commit_messages) only walks
+    commits reachable from refs; it never surfaces an annotated tag
+    object's own message body at all. A secret that exists ONLY in a tag
+    message (nowhere in any file or commit) was completely invisible to
+    every prior scan -- the planner confidently reported
+    'no_matches_found_nothing_to_purge' and never even attempted a
+    redaction, the most dangerous possible failure mode for a tool whose
+    entire purpose is finding leaked secrets. `git filter-repo
+    --replace-message` DOES correctly rewrite tag messages (confirmed
+    live) -- the gap was purely in scanning, not redaction."""
+    result = run(["git", "-C", repo_dir, "for-each-ref", "--format=%(refname)%00%(contents)%00\x01", "refs/tags"])
+    entries = [e for e in result.stdout.split("\x01") if e.strip()]
+    findings = {p: [] for p in patterns}
+    for entry in entries:
+        parts = entry.split("\x00", 1)
+        if len(parts) != 2:
+            continue
+        refname, contents = parts
+        for pattern in patterns:
+            if pattern in contents:
+                findings[pattern].append({"commit": refname.strip(), "path": "<tag message>"})
+    return findings
+
+
 def scan_commit_messages(repo_dir, patterns):
-    """Checks every commit's and tag's full message text -- found live:
-    a secret pasted into a commit message survives `--replace-text`
-    entirely (that flag only rewrites file/blob content), and `git grep`
-    never looks at commit messages at all, so relying on scan_history()
-    alone would let a message-embedded secret report as "verified clean"
-    while it's still sitting in the rewritten history untouched. Returns
+    """Checks every commit's full message text -- found live: a secret
+    pasted into a commit message survives `--replace-text` entirely
+    (that flag only rewrites file/blob content), and `git grep` never
+    looks at commit messages at all, so relying on scan_history() alone
+    would let a message-embedded secret report as "verified clean" while
+    it's still sitting in the rewritten history untouched. Returns
     {pattern: [{commit, path}]}, using the synthetic path "<commit
-    message>" so a message hit is clearly distinguishable from a file hit."""
+    message>" so a message hit is clearly distinguishable from a file hit.
+    Does NOT cover annotated tag messages -- see scan_tag_messages()."""
     result = run(["git", "-C", repo_dir, "log", "--all", "--format=%H%x00%B%x00"])
     entries = [e for e in result.stdout.split("\x00") if e]
     findings = {p: [] for p in patterns}
@@ -130,28 +158,31 @@ def scan_history(repo_dir, patterns):
     secret is still sitting in history. A security scanner that fails
     silently on binary content is worse than no scanner at all.
 
-    Also checks commit messages via scan_commit_messages() -- file-tree
-    content and commit messages are two genuinely separate surfaces a
-    secret can leak into, and `git filter-repo` needs a different flag
-    for each (see apply_redaction)."""
-    commits = run(["git", "-C", repo_dir, "rev-list", "--all"]).stdout.split()
+    Also checks commit messages (scan_commit_messages) and annotated tag
+    messages (scan_tag_messages) -- three genuinely separate surfaces a
+    secret can leak into, each requiring its own git mechanism to find
+    and its own filter-repo flag to fix (see apply_redaction). The file-
+    tree grep is skipped if there are zero commits, but the message/tag
+    scans always run regardless -- a tag can't exist without at least
+    one commit in practice, but there's no reason to couple them."""
     findings = {p: [] for p in patterns}
-    if not commits:
-        return findings
-    for pattern in patterns:
-        result = run(
-            ["git", "-C", repo_dir, "grep", "-a", "-l", "-e", pattern] + commits,
-            check=False,
-        )
-        if result.returncode not in (0, 1):  # 1 = no matches, both are valid outcomes
-            raise RuntimeError(f"git grep failed: {result.stderr}")
-        for line in result.stdout.splitlines():
-            commit, _, path = line.partition(":")
-            findings[pattern].append({"commit": commit, "path": path})
+    commits = run(["git", "-C", repo_dir, "rev-list", "--all"]).stdout.split()
+    if commits:
+        for pattern in patterns:
+            result = run(
+                ["git", "-C", repo_dir, "grep", "-a", "-l", "-e", pattern] + commits,
+                check=False,
+            )
+            if result.returncode not in (0, 1):  # 1 = no matches, both are valid outcomes
+                raise RuntimeError(f"git grep failed: {result.stderr}")
+            for line in result.stdout.splitlines():
+                commit, _, path = line.partition(":")
+                findings[pattern].append({"commit": commit, "path": path})
 
-    message_findings = scan_commit_messages(repo_dir, patterns)
-    for pattern, hits in message_findings.items():
-        findings[pattern].extend(hits)
+    for scan_fn in (scan_commit_messages, scan_tag_messages):
+        extra_findings = scan_fn(repo_dir, patterns)
+        for pattern, hits in extra_findings.items():
+            findings[pattern].extend(hits)
     return findings
 
 
@@ -229,7 +260,13 @@ def main():
             else:
                 stopped_reason = f"max_iterations_reached ({args.max_iterations})"
 
-        commits_affected = sorted({m["commit"][:12] for v in initial_findings.values() for m in v})
+        # Only a real 40-char commit SHA should be shortened -- a tag
+        # ref name (found live: "refs/tags/v9.9.9") isn't a hash at all,
+        # and blindly slicing [:12] mangled it into "refs/tags/v9".
+        def _short_ref(ref):
+            return ref[:12] if len(ref) == 40 and all(c in "0123456789abcdef" for c in ref) else ref
+
+        commits_affected = sorted({_short_ref(m["commit"]) for v in initial_findings.values() for m in v})
 
         escalation_note = None
         if not converged and stopped_reason and stopped_reason.startswith("max_iterations_reached"):
