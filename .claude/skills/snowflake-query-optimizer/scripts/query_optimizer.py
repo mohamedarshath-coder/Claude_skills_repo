@@ -54,7 +54,7 @@ WHERE start_time >= DATEADD('day', -%(days)s, CURRENT_TIMESTAMP())
     -- person running this skill, so they're excluded from the default view.
     AND warehouse_name NOT ILIKE 'COMPUTE_SERVICE_WH%%'
 ORDER BY execution_time DESC
-LIMIT %(limit)s
+LIMIT %(scan_limit)s
 """
 
 SINGLE_QUERY_SQL = """
@@ -132,6 +132,23 @@ def diagnose(row):
     return issues
 
 
+def rank_results(all_results, limit):
+    """Ranks diagnosed queries issues-first, duration second. Found live
+    2026-07-16: a real spilling query (1.5s) ranked outside a
+    top-10-by-duration window where the slowest query ran 13.8s, and was
+    missed entirely -- the SQL-level LIMIT happened before diagnosis ever
+    ran. Fixed at the caller by scanning a wider pool (--scan-limit)
+    before this function ever sees the rows; this function then ranks
+    the diagnosed results so that EVERY flagged query is always included
+    in the final output, never truncated away by --limit -- only the
+    issue-free queries shown for context are capped."""
+    with_issues = [r for r in all_results if r["issues"]]
+    without_issues = [r for r in all_results if not r["issues"]]
+    results = with_issues + without_issues[:max(0, limit - len(with_issues))]
+    results.sort(key=lambda r: (not r["issues"], -r["execution_ms"]))
+    return results
+
+
 def get_connection(connection_name):
     overrides = {}
     if os.environ.get("SNOWFLAKE_PASSWORD"):
@@ -158,7 +175,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--connection", default=os.environ.get("SNOWFLAKE_CONNECTION_NAME", "default"))
     parser.add_argument("--days", type=int, default=7)
-    parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument("--limit", type=int, default=10,
+                        help="Max number of ISSUE-FREE queries to include for context (every flagged query is always included, never dropped)")
+    parser.add_argument("--scan-limit", type=int, default=50,
+                        help="How many of the slowest queries to fetch and diagnose before ranking -- wider than --limit so a real issue on a moderate-duration query isn't silently missed")
     parser.add_argument("--query-id", default=None)
     args = parser.parse_args()
 
@@ -168,17 +188,17 @@ def main():
         if args.query_id:
             rows = run_query(cur, SINGLE_QUERY_SQL, {"query_id": args.query_id})
         else:
-            rows = run_query(cur, SLOW_QUERIES_SQL, {"days": args.days, "limit": args.limit})
+            rows = run_query(cur, SLOW_QUERIES_SQL, {"days": args.days, "scan_limit": args.scan_limit})
         cur.close()
         conn.close()
     except Exception as e:
         print(json.dumps({"error": str(e)}), file=sys.stderr)
         sys.exit(1)
 
-    results = []
+    all_results = []
     for row in rows:
         issues = diagnose(row)
-        results.append({
+        all_results.append({
             "query_id": row["query_id"],
             "warehouse_name": row["warehouse_name"],
             "warehouse_size": row["warehouse_size"],
@@ -187,10 +207,13 @@ def main():
             "issues": issues,
         })
 
+    results = rank_results(all_results, args.limit)
+
     output = {
         "window_days": args.days if not args.query_id else None,
-        "analyzed_query_count": len(results),
-        "queries_with_issues": sum(1 for r in results if r["issues"]),
+        "scan_limit": args.scan_limit if not args.query_id else None,
+        "analyzed_query_count": len(all_results),
+        "queries_with_issues": sum(1 for r in all_results if r["issues"]),
         "results": results,
     }
     print(json.dumps(output, indent=2, default=str))
