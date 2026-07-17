@@ -10,11 +10,12 @@ Run: python test_rewrite_planner.py   (also picked up by tools/ci/unit_tests.py)
 """
 import os
 import stat
+import subprocess
 import sys
 import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts"))
-from rewrite_planner import build_replacements_file, _force_remove_readonly  # noqa: E402
+from rewrite_planner import build_replacements_file, _force_remove_readonly, scan_commit_messages  # noqa: E402
 
 failures = []
 
@@ -49,6 +50,35 @@ with tempfile.TemporaryDirectory() as tmp:
     _force_remove_readonly(fake_remove, target, None)
     check("read-only handler clears the read-only bit before retrying removal", removed["called"])
     check("file is actually gone after the handler runs", not os.path.exists(target))
+
+# --- scan_commit_messages: regression test for the live-found gap ---
+# (git filter-repo's --replace-text never touches commit messages at
+# all; a secret pasted into one is a real, separate leak surface, found
+# live when a secret survived redaction completely undetected because
+# the scanner only ever checked file content via `git grep`.)
+with tempfile.TemporaryDirectory() as tmp:
+    def git(*args):
+        subprocess.run(["git", "-C", tmp] + list(args), check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "Test")
+    with open(os.path.join(tmp, "f.txt"), "w") as f:
+        f.write("hello")
+    git("add", "f.txt")
+    git("commit", "-q", "-m", "a commit whose message mentions SECRET_IN_MESSAGE_123 by mistake")
+    with open(os.path.join(tmp, "f.txt"), "w") as f:
+        f.write("hello again")
+    git("add", "f.txt")
+    git("commit", "-q", "-m", "an unrelated commit with no secret in it")
+
+    findings = scan_commit_messages(tmp, ["SECRET_IN_MESSAGE_123"])
+    check("secret embedded in a commit message (never in file content) is found", len(findings["SECRET_IN_MESSAGE_123"]) == 1)
+    check("the hit is labeled as a commit-message hit, not a file path",
+          findings["SECRET_IN_MESSAGE_123"][0]["path"] == "<commit message>")
+
+    clean_findings = scan_commit_messages(tmp, ["never_appears_anywhere"])
+    check("a pattern that appears in no message returns zero hits", clean_findings["never_appears_anywhere"] == [])
 
 if failures:
     print("FAILED:")
