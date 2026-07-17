@@ -1,0 +1,37 @@
+{
+  "_fixture_note": "Real dry-run output from 2026-07-16 against two real, deliberately-built Snowflake schemas (DDL_TEST_SOURCE, DDL_TEST_TARGET) covering all 4 real scenarios at once: a missing table (PRODUCTS), a missing column (CUSTOMERS.LOYALTY_TIER), a type mismatch (ORDERS.AMOUNT), and an extra table in the target (LEGACY_AUDIT_LOG). This is captured AFTER a real bug found on the first --execute run: the DDL was originally unqualified (CREATE TABLE \"PRODUCTS\") and silently created the table in the connection's default schema instead of the real target -- fixed to always schema-qualify with the actual target schema name, visible in the planned_ddl below.",
+  "source_schema": "DDL_TEST_SOURCE",
+  "target_schema": "DDL_TEST_TARGET",
+  "execute_mode": false,
+  "iterations_run": 1,
+  "max_iterations": 5,
+  "converged": false,
+  "stopped_reason": "dry_run_stopped_after_one_pass",
+  "iteration_log": [
+    {
+      "iteration": 1,
+      "safe_actions_found": 2,
+      "manual_review_found": 2,
+      "planned_ddl": [
+        "CREATE TABLE \"DDL_TEST_TARGET\".\"PRODUCTS\" (\"PRODUCT_ID\" NUMBER(38,0), \"PRODUCT_NAME\" VARCHAR(200), \"PRICE\" NUMBER(10,2))",
+        "ALTER TABLE \"DDL_TEST_TARGET\".\"CUSTOMERS\" ADD COLUMN \"LOYALTY_TIER\" VARCHAR(20)"
+      ]
+    }
+  ],
+  "manual_review_required": [
+    {
+      "type": "extra_table_in_target",
+      "table": "LEGACY_AUDIT_LOG",
+      "detail": "Table 'LEGACY_AUDIT_LOG' exists in the target but not the source -- never auto-dropped. Confirm with the table owner before deciding whether to remove it."
+    },
+    {
+      "type": "type_mismatch",
+      "table": "ORDERS",
+      "column": "AMOUNT",
+      "source_type": ["NUMBER", null, 10, 2],
+      "target_type": ["NUMBER", null, 8, 0],
+      "detail": "Column 'ORDERS.AMOUNT' is ('NUMBER', None, 10, 2) in source but ('NUMBER', None, 8, 0) in target -- type changes are never auto-generated (can be lossy/unsafe); resolve manually."
+    }
+  ],
+  "audit_log": []
+}
