@@ -2,11 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(python .claude/skills/**/scripts/*.py:*)",
-      "Read(./.claude/skills/**)",
-      "Bash(export SNOWFLAKE_PASSWORD=\"Arshath@302004\")",
-      "Bash(python -c ' *)",
-      "Bash(python .claude/skills/snowflake-clustering-advisor/scripts/clustering_advisor.py --schema RAW --table CLUSTER_TEST_EVENTS --days 1)",
-      "Edit(/.claude/skills/snowflake-clustering-advisor/**)"
+      "Read(./.claude/skills/**)"
     ],
     "deny": [
       "Read(./.env)",

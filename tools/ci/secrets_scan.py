@@ -31,11 +31,19 @@ PATTERNS = [
 # misses these because underscores are word characters, so "api_token"
 # has no boundary before "token". Excludes anything that clearly
 # references an env var, a placeholder, or is empty.
+#
+# The quote itself allows an optional leading backslash (\\?['"]) -- found
+# live: a JSON file storing shell commands as string VALUES escapes its
+# inner quotes (PASSWORD=\"secret\"), and a bare ['"] never matches the
+# escaped \" sequence, letting a real committed password through
+# undetected. This exact gap let a real Snowflake password sit in a
+# committed .claude/settings.json unnoticed until found by manual
+# inspection -- closed here, not just noted.
 LITERAL_ASSIGNMENT_RE = re.compile(
     r"""(?ix)
     \w*(password|secret|token|api[_-]?key)\w*
     \s*[:=]\s*
-    ['"]([^'"]{6,})['"]
+    \\?['"]([^'"\\]{6,})\\?['"]
     """
 )
 SAFE_VALUE_HINTS = ("env", "environ", "placeholder", "your-", "xxx", "changeme", "<", "{{")
