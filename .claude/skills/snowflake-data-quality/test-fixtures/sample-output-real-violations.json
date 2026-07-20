@@ -1,0 +1,64 @@
+{
+  "_fixture_note": "Real output from 2026-07-20 against RAW.DQ_TEST_CHILD, a deliberately-built 5-row table with genuine violations of all four kinds at once: a duplicated key (PRIMARY_KEY=2 appears twice), an out-of-range value (QUANTITY=500 vs a 1-100 bound), an orphaned foreign key (PARENT_REF=99 has no matching row in the real parent table RAW.DQ_TEST_PARENT), and a malformed email. This closes the last open live-verification gap in this skill: every check had only ever been proven on CLEAN real tables before this. All four fired with exactly the right numbers on the first real attempt. Test tables dropped after verification.",
+  "schema": "RAW",
+  "table": "DQ_TEST_CHILD",
+  "duplicates": {
+    "key_column": "PRIMARY_KEY",
+    "total_rows": 5,
+    "non_null_keys": 5,
+    "distinct_keys": 4,
+    "duplicate_key_count": 1,
+    "excess_rows_from_duplicates": 1,
+    "worst_key_occurrences": 2,
+    "passed": false
+  },
+  "nulls": {
+    "total_rows": 5,
+    "columns": [
+      {"column": "ROW_ID", "null_count": 0, "null_pct": 0.0},
+      {"column": "PRIMARY_KEY", "null_count": 0, "null_pct": 0.0},
+      {"column": "PARENT_REF", "null_count": 0, "null_pct": 0.0},
+      {"column": "QUANTITY", "null_count": 0, "null_pct": 0.0},
+      {"column": "EMAIL", "null_count": 0, "null_pct": 0.0}
+    ],
+    "columns_with_nulls": []
+  },
+  "freshness": {
+    "date_columns_found": 0,
+    "columns": [],
+    "note": "no date/timestamp columns in this table"
+  },
+  "range_checks": [
+    {
+      "column": "QUANTITY",
+      "min": 1.0,
+      "max": 100.0,
+      "non_null_count": 5,
+      "out_of_range_count": 1,
+      "out_of_range_pct": 20.0,
+      "passed": false
+    }
+  ],
+  "referential_integrity_checks": [
+    {
+      "child_column": "PARENT_REF",
+      "parent": "RAW.DQ_TEST_PARENT",
+      "parent_column": "PARENT_ID",
+      "non_null_child_count": 5,
+      "orphan_count": 1,
+      "orphan_pct": 20.0,
+      "passed": false
+    }
+  ],
+  "format_checks": [
+    {
+      "column": "EMAIL",
+      "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+      "non_null_count": 5,
+      "non_matching_count": 1,
+      "non_matching_pct": 20.0,
+      "passed": false
+    }
+  ],
+  "business_rule_checks": []
+}
