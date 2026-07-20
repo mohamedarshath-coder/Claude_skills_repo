@@ -1,0 +1,32 @@
+{
+  "_fixture_note": "Real output from 2026-07-20 against a genuine Databricks job (job_deploy_test_fail) whose notebook always raises the same RuntimeError. Correctly failed twice with the IDENTICAL real error message and stopped after attempt 2 rather than exhausting --max-retries 3 -- proving the early-escalation rule fires on real repeated failures, not just constructed ones. Test job and notebook deleted after verification.",
+  "job_name": "job_deploy_test_fail",
+  "task_count": 1,
+  "execute_mode": true,
+  "job_id": 1104357883649510,
+  "action_taken": "created",
+  "converged": false,
+  "stopped_reason": "identical_error_repeated_stopping_early",
+  "audit_log": [
+    {
+      "attempt": 1,
+      "run_id": 53161880309668,
+      "timestamp": "2026-07-20T05:49:48.652236+00:00",
+      "result_state": "FAILED",
+      "outcome": "failed",
+      "failed_task_key": "deploy_fail_task",
+      "error_message": "RuntimeError: Deterministic bug: this always fails the same way"
+    },
+    {
+      "attempt": 2,
+      "run_id": 174208595048581,
+      "timestamp": "2026-07-20T05:52:09.050144+00:00",
+      "result_state": "FAILED",
+      "outcome": "failed",
+      "failed_task_key": "deploy_fail_task",
+      "error_message": "RuntimeError: Deterministic bug: this always fails the same way"
+    }
+  ],
+  "overall_status": "did_not_converge",
+  "detail": "Did not converge after 2 attempt(s). Last failure: task 'deploy_fail_task' -- RuntimeError: Deterministic bug: this always fails the same way. The same error repeated, so this is very likely a deterministic bug in the spec, not a transient failure -- fix the spec before retrying."
+}
