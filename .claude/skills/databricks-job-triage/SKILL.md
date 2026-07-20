@@ -57,11 +57,13 @@ Always cite the actual run ID, job name, and error text pulled by the script —
 | Path | Live workspace | Unit-tested |
 |---|---|---|
 | Single-task failure resolution + real trace | ✅ (5 real failed runs, masked-dbt-error finding) | ✅ |
-| **Multi-task resolution to the specific failing task** | ❌ every real failure so far was single-task | ✅ `test-fixtures/test_triage.py` (1-of-3 failed, 2-of-3 failed, output fetched only for failed task run_ids) |
+| **Multi-task resolution to the specific failing task** | ✅ **live-fired** (2026-07-20) — a deliberately-built real 3-task job (2 tasks succeed, 1 raises a real exception) correctly resolved to exactly `task_fail`, with its real error message and trace; `task_ok_1`/`task_ok_2` correctly excluded despite genuinely running in the same multi-task job | ✅ `test-fixtures/test_triage.py` (1-of-3 failed, 2-of-3 failed, output fetched only for failed task run_ids) |
 | ANSI stripping / repetition collapse / tail cap | ✅ (real ANSI-laden dbt traces) | ✅ (incl. 50x-repeat collapse, 200-line cap, suppressed-count honesty) |
 | **Truncation reporting (`truncated` / `truncation_note`)** | ✅ — found live: a 14-day window had 46 real failures against the default `--max-runs=20`, silently capped with zero indication more existed. Fixed and re-verified both states live: capped (`truncated: true` + note) and uncapped (`--max-runs 100` → `truncated: false`) | ✅ (cap-hit and cap-not-hit paths) |
 
-The multi-task path is covered by unit tests running the real `summarize_run()` against constructed run objects with a stub client; live confirmation awaits a real multi-task job failure occurring naturally.
+**Multi-task resolution closed 2026-07-20.** Built a real 3-task Databricks job (`task_ok_1`, `task_ok_2` both trivially succeed; `task_fail` deliberately raises `ValueError`), all sharing one cluster. The real run correctly resolved to `failed_tasks: [task_fail]` only — the specific task, its real error message, and its real (short, unsuppressed) trace — with zero false attribution to either succeeding task.
+
+**A genuine environment-clock artifact surfaced during this test, not a code bug:** the sandboxed session's local clock is fixed at a stated "current date" while Databricks stamps real API-call timestamps with actual wall-clock time; over a long session the two can drift by several real days, causing a `--days` cutoff computed from local `time.time()` to exclude a run that just happened. `get_failed_runs`'s cutoff logic itself is correct (`now - N days` compared against the run's real `start_time`) — this only affects testing inside a long-running sandboxed session with a fixed simulated date, not a real user's own machine, which would have an accurate clock via normal OS time sync. Worth remembering if a future live test in this same kind of environment reports an unexpectedly empty result — widen `--days` before assuming the code is wrong.
 
 ## Loop tier & future promotion
 
