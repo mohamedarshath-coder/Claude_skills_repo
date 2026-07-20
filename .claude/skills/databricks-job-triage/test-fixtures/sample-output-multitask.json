@@ -1,0 +1,26 @@
+{
+  "_fixture_note": "Real output from 2026-07-20 against a genuine, deliberately-built 3-task Databricks job (task_ok_1, task_ok_2 both succeed; task_fail raises a real ValueError), all sharing one cluster. This is the first live confirmation of multi-task resolution -- previously unit-tested only. failed_tasks correctly contains ONLY task_fail; the two succeeding tasks are correctly excluded despite genuinely running in the same multi-task job. Job/run IDs are real but the job itself was deleted after this test.",
+  "window_days": 5,
+  "failed_run_count": 1,
+  "truncated": false,
+  "truncation_note": null,
+  "failed_runs": [
+    {
+      "job_name": "job_triage_multitask_test_job",
+      "run_id": 882207613726434,
+      "job_id": 473791298984991,
+      "start_time_epoch_ms": 1784267388381,
+      "state_message": "Task task_fail failed with message: Workload failed, see run output for details.",
+      "failed_tasks": [
+        {
+          "task_key": "task_fail",
+          "task_run_id": 1055252888528423,
+          "error_message": "ValueError: Deliberate test failure for job-triage multi-task verification",
+          "trace_tail": "---------------------------------------------------------------------------\nValueError                                Traceback (most recent call last)\nFile <command-6488351466634018>, line 1\n----> 1 raise ValueError(\"Deliberate test failure for job-triage multi-task verification\")\n\nValueError: Deliberate test failure for job-triage multi-task verification",
+          "trace_suppressed_lines": 0,
+          "trace_total_lines": 6
+        }
+      ]
+    }
+  ]
+}
