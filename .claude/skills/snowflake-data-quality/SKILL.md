@@ -63,20 +63,31 @@ Added on request to cover the gap explicitly named in the original Purpose ("doe
 - **Format** (`--format-check EMAIL "^[^@]+@[^@]+\.[^@]+$"` on `RAW_CUSTOMERS`, 6,000 rows): 0 non-matching. Clean, correctly reported.
 - **Business rule** (`--rule-check line_total_formula "ABS(LINE_TOTAL - (QUANTITY*UNIT_PRICE - DISCOUNT_AMOUNT)) < 0.01"` on `RAW_ORDER_ITEMS`): **89.88% violated (17,976 of 20,000)** — this is the honest cautionary example named in Step 5. Investigated before reporting: the match rate was ~10% *uniformly* across every `IS_RETURNED`/`FULFILLMENT_STATUS` combination, meaning the guessed formula doesn't reconcile with the data at all — this is synthetic demo data where `LINE_TOTAL` isn't actually derived from `QUANTITY`/`UNIT_PRICE`/`DISCOUNT_AMOUNT` by any simple rule, not a real 90% data-quality failure. **The check's SQL and counts are correct; the specific rule guessed was wrong.** This is exactly why a high business-rule violation rate must trigger a "double-check the expression" caveat rather than being reported as a finding at face value.
 
+## Verified live: the positive (real-violation) case for every check, closed 2026-07-20
+
+Every check above had only ever been proven on clean, real tables — the "found a real problem" path was untested for duplicates, ranges, referential integrity, and format checks. Closed in one pass by building `RAW.DQ_TEST_CHILD` (5 real rows) with genuine, deliberately-planted violations of all four kinds at once, plus a real parent table (`RAW.DQ_TEST_PARENT`) for the FK check:
+
+- **Duplicates**: `PRIMARY_KEY` value `2` genuinely appears twice → `duplicate_key_count: 1`, `worst_key_occurrences: 2`, `passed: false`.
+- **Range**: `QUANTITY = 500` genuinely violates a `1-100` bound → `out_of_range_count: 1` (20%), `passed: false`.
+- **Referential integrity**: `PARENT_REF = 99` genuinely doesn't exist in the real parent table → `orphan_count: 1` (20%), `passed: false`.
+- **Format**: `EMAIL = 'not-an-email-at-all'` genuinely fails the email regex → `non_matching_count: 1` (20%), `passed: false`.
+
+All four fired with exactly the right numbers on the first real attempt — no bugs found in this pass, just closing genuine live-verification gaps that had been open since these checks were built. Test tables dropped after verification.
+
 ## Verification status (honest, per check)
 
 | Check | Live | Unit-tested |
 |---|---|---|
 | Duplicates: clean table (exact zero, 6000/6000) | ✅ | — (detection logic lives in SQL, not Python — a stub cursor would only test dict packaging) |
-| Duplicates: table WITH real duplicates | ❌ no such table exists in the account; awaits a real case | — (same reason) |
+| Duplicates: table WITH real duplicates | ✅ (2026-07-20, real `DQ_TEST_CHILD` table, key `2` duplicated) | — (same reason) |
 | Nulls: clean table | ✅ | — (same reason) |
 | Freshness verdict semantics: stale / ok / historical-exemption / explicit `--freshness-columns` | ✅ all three verdicts occurred live | ✅ `test-fixtures/test_quality.py` (7 tests — the verdict logic is Python, and it's the part that was actually wrong once) |
 | Range check: clean table | ✅ | — (SQL-only logic) |
-| Range check: table WITH out-of-range values | ❌ no such case found yet | — |
+| Range check: table WITH out-of-range values | ✅ (2026-07-20, real `QUANTITY = 500` outside `1-100`) | — |
 | Referential integrity: clean (no orphans) | ✅ (both real FK relationships tested) | — |
-| Referential integrity: table WITH real orphans | ❌ no such case found yet | — |
+| Referential integrity: table WITH real orphans | ✅ (2026-07-20, real `PARENT_REF = 99` with no matching parent row) | — |
 | Format check: clean (matching pattern) | ✅ | — |
-| Format check: table WITH non-matching values | ❌ no such case found yet | — |
+| Format check: table WITH non-matching values | ✅ (2026-07-20, real malformed email value) | — |
 | Business rule: correctly identifies a wrong-formula guess (not a data bug) | ✅ — the `line_total_formula` case above | — |
 | Business rule: a genuinely correct rule with real violations | ❌ not yet tested — would need a rule confirmed correct by someone who knows the actual business logic |
 
