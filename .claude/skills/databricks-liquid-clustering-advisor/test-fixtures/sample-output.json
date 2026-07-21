@@ -1,0 +1,28 @@
+{
+  "_fixture_note": "Real output from 2026-07-21 against a genuine Delta table (dev.claude_skills_test.lc_test_events, 16 files, 485MB) on a real SQL Warehouse. 4 of 5 real WHERE region = '<value>' queries were confirmed via the real query_history API (scoped to the caller's own user_id) to read all 16 files with 0 pruned. The tool correctly recommended CLUSTER BY (region). Test warehouse/schema/table deleted after verification.",
+  "table": "dev.claude_skills_test.lc_test_events",
+  "table_stats": {
+    "num_files": 16,
+    "size_bytes": 485614728
+  },
+  "existing_clustering_columns": [],
+  "queries_analyzed": 5,
+  "poorly_pruned_query_count": 4,
+  "candidate_clustering_columns": [
+    {
+      "column": "region",
+      "mention_count": 4,
+      "avg_read_ratio_when_present": 1.0
+    }
+  ],
+  "advisory": {
+    "status": "recommend",
+    "detail": "No clustering key defined. 4 of 5 queries read most/all files, and region was the most frequent real column in their filter text.",
+    "suggested_keys": [
+      "region"
+    ]
+  },
+  "execute_mode": false,
+  "errors": {},
+  "planned_ddl": "ALTER TABLE dev.claude_skills_test.lc_test_events CLUSTER BY (region)"
+}
