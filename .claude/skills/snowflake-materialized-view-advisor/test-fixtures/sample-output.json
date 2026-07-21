@@ -1,0 +1,34 @@
+{
+  "_fixture_note": "Real output from 2026-07-21 against a genuine 5M-row table (RAW.MV_TEST_SALES) in the real account, queried 6 times to create a repeated pattern. Verification honestly reported no improvement across 3 real re-run attempts against a result-cache-fast 12.3ms baseline -- a genuine, not fabricated, outcome. Test view and table dropped after verification.",
+  "window_days": 3,
+  "min_occurrences": 5,
+  "min_total_seconds": 0.01,
+  "candidates_found": 1,
+  "eligible_candidates_found": 1,
+  "candidates": [
+    {
+      "query_hash": "eb13d93ed08004b6d58ef2199d2b9994",
+      "occurrences": 6,
+      "total_seconds": 0.1,
+      "avg_ms": 12.3,
+      "sample_text": "SELECT REGION, SUM(AMOUNT) AS TOTAL FROM RAW.MV_TEST_SALES GROUP BY REGION",
+      "mv_eligible": true,
+      "ineligibility_reasons": []
+    }
+  ],
+  "execute_mode": true,
+  "action_taken": "created materialized view MV_ADVISOR_TEST_SALES_VIEW",
+  "recommended_view_name": "MV_ADVISOR_TEST_SALES_VIEW",
+  "recommended_ddl": "CREATE OR REPLACE MATERIALIZED VIEW MV_ADVISOR_TEST_SALES_VIEW AS\nSELECT REGION, SUM(AMOUNT) AS TOTAL FROM RAW.MV_TEST_SALES GROUP BY REGION",
+  "verification": {
+    "improved": false,
+    "iterations_run": 3,
+    "iteration_log": [
+      {"iteration": 1, "real_execution_ms": 1053.1, "baseline_avg_ms": 12.3, "improved": false},
+      {"iteration": 2, "real_execution_ms": 144.7, "baseline_avg_ms": 12.3, "improved": false},
+      {"iteration": 3, "real_execution_ms": 105.9, "baseline_avg_ms": 12.3, "improved": false}
+    ]
+  },
+  "overall_status": "created_but_improvement_not_observed",
+  "detail": "View created, but 3 real re-run attempt(s) did not beat the 12.3ms historical average -- the view may need time to populate, or the query planner may not be using it yet. Investigate before relying on it."
+}
