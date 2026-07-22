@@ -1,0 +1,47 @@
+{
+  "_fixture_note": "Real output from 2026-07-22 against the real account's COMPUTE_WH, with MAX_CLUSTER_COUNT temporarily bumped to 3 (with explicit user confirmation) to force a real recommend_scale_down scenario for live-testing. COMPUTE_WH was restored to its exact original configuration (MIN=1, MAX=1, STANDARD) as part of this same test.",
+  "warehouse": {
+    "name": "COMPUTE_WH",
+    "size": "X-Small",
+    "min_cluster_count": 1,
+    "max_cluster_count": 3,
+    "scaling_policy": "STANDARD",
+    "state": "SUSPENDED"
+  },
+  "load_history_window_days": 30,
+  "load_summary": {
+    "samples": 307,
+    "queued_sample_count": 13,
+    "queued_sample_pct": 4.2,
+    "max_avg_running_observed": 0.257,
+    "avg_avg_running": 0.011
+  },
+  "advisory": {
+    "status": "recommend_scale_down",
+    "detail": "No real queueing observed (4.2% of samples), and the busiest real sample only used 0.257 of 3 available clusters on average -- 91.4% of the extra headroom was never exercised. Real ongoing cost with no observed benefit.",
+    "recommended_action": {
+      "max_cluster_count": 1,
+      "scaling_policy": "STANDARD"
+    }
+  },
+  "execute_mode": true,
+  "applied_ddl": "ALTER WAREHOUSE COMPUTE_WH SET MAX_CLUSTER_COUNT = 1 SCALING_POLICY = 'STANDARD'",
+  "change_verified": true,
+  "warehouse_after_change": {
+    "name": "COMPUTE_WH",
+    "size": "X-Small",
+    "min_cluster_count": 1,
+    "max_cluster_count": 1,
+    "scaling_policy": "STANDARD",
+    "state": "SUSPENDED"
+  },
+  "post_change_verification": {
+    "new_load_data_observed": false,
+    "iterations_run": 2,
+    "iteration_log": [
+      {"iteration": 1, "new_samples_found": 0},
+      {"iteration": 2, "new_samples_found": 0}
+    ],
+    "new_load_summary": null
+  }
+}
