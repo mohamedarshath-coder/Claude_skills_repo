@@ -69,6 +69,8 @@ The `table_too_small` path fired live and correctly on that same run — `RAW_OR
 - `RAW.CLUSTER_TEST_MISALIGNED` (20M rows, 2.9GB) — given an explicit clustering key on `CUSTOMER_SEGMENT` (genuinely healthy: 0.0335 average overlaps, 1.02 average depth), then queried exclusively by `REGION`, a different column. **This is the first live firing of `reclustering_may_help`** — the skill correctly distinguished "a key exists and is healthy for what it clusters" from "the key doesn't match how the table is actually queried," recommending `REGION` instead without disparaging the existing key's own quality.
 - `RAW.CLUSTER_TEST_WELL_ORGANIZED` (15M rows, 2.2GB, physically sorted by `REGION`) — queried only by `REGION`. **This is the first live firing of `pruning_already_good`** — 5 of 5 queries pruned well, and the skill correctly said nothing needed fixing rather than manufacturing a finding.
 
+**`insufficient_column_evidence` closed the last remaining gap (2026-07-23).** A real `SELECT SUM(CUSTOMER_ID) FROM RAW.CLUSTER_TEST_COMPLEX` query (no `WHERE` clause) was run against the same 30M-row table above, genuinely scanning all 267 of 267 partitions (100%, poor pruning by any threshold) since a full aggregate has no filter to prune on. The skill correctly flagged it as poorly-pruned, but `CUSTOMER_ID`'s only appearance in the query text is inside the `SELECT` list (`SUM(CUSTOMER_ID)`) — which `strip_select_list` correctly removes before candidate-column matching, exactly as designed — leaving zero real-column mentions in the remainder and correctly firing `insufficient_column_evidence` rather than false-crediting `CUSTOMER_ID` from its SELECT-list-only appearance.
+
 ## Verification status per branch (honest status, not hidden)
 
 | Path | Live account | Unit-tested |
@@ -80,10 +82,10 @@ The `table_too_small` path fired live and correctly on that same run — `RAW_OR
 | `recommend`, ranking 2 competing candidates | ✅ (real 30M-row table; `REGION` [8 mentions] correctly ranked above `CUSTOMER_SEGMENT` [4 mentions], `EVENT_TIME` correctly excluded) | ✅ |
 | `reclustering_may_help` | ✅ (real 20M-row table with a genuinely healthy key on the wrong column — `CUSTOMER_SEGMENT` clustering itself measured healthy, but `REGION` correctly identified as the actual query pattern) | ✅ |
 | `pruning_already_good` | ✅ (real 15M-row table physically sorted by `REGION`; 5 of 5 real `REGION` queries pruned well, correctly reported as no action needed) | ✅ |
-| `insufficient_column_evidence` | ❌ not yet observed live — would need a large table with genuinely poor pruning but no identifiable real-column cause (e.g. a filter on a computed expression) | ✅ |
+| `insufficient_column_evidence` | ✅ (real 267-partition full-scan `SUM(CUSTOMER_ID)` aggregate query; correctly excluded the SELECT-list-only column mention and found nothing confident enough to recommend) | ✅ |
 | `strip_select_list` / `extract_candidate_columns` (the heuristic itself) | ✅ (proven correct across all of the above, including correct multi-candidate ranking) | ✅ (SELECT-list stripping, real-column-only matching, empty-input safety) |
 
-**What's still open:** only `insufficient_column_evidence` remains unit-tested-only — every other branch this skill can produce, including both the harder multi-candidate ranking case and the previously-unfired `reclustering_may_help`/`pruning_already_good` outcomes, is now proven against real, independently-verifiable Snowflake data.
+**Every branch this skill can produce is now proven against real, independently-verifiable Snowflake data**, not just fixture-tested — the last gap (`insufficient_column_evidence`) closed on 2026-07-23.
 
 ## Loop tier
 

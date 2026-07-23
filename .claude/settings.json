@@ -10,7 +10,8 @@
       "Bash(python .claude/skills/databricks-liquid-clustering-advisor/scripts/liquid_clustering_advisor.py --warehouse-id a7ec64af665e284f --catalog dev --schema claude_skills_test --table lc_test_events --days 7 --execute --max-iterations 2)",
       "Bash(python .claude/skills/databricks-liquid-clustering-advisor/test-fixtures/test_liquid_clustering_advisor.py)",
       "Bash(git merge *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(python .claude/skills/snowflake-clustering-advisor/scripts/clustering_advisor.py --schema RAW --table CLUSTER_TEST_COMPLEX --days 3 --min-evidence-queries 1)"
     ],
     "deny": [
       "Read(./.env)",
