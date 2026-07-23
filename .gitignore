@@ -41,6 +41,7 @@ venv/
 .DS_Store
 Thumbs.db
 *.swp
+debug.log
 
 # Generated per-runtime exports -- regenerate via tools/export-skill, never hand-edit or commit
 exports/

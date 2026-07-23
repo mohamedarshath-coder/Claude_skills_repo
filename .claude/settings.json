@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(python .claude/skills/**/scripts/*.py:*)",
-      "Read(./.claude/skills/**)"
+      "Read(./.claude/skills/**)",
+      "Bash(python -c ' *)",
+      "Bash(mkdir -p \"/d/projects/claude_skills/.claude/skills/databricks-liquid-clustering-advisor/scripts\" \"/d/projects/claude_skills/.claude/skills/databricks-liquid-clustering-advisor/test-fixtures\")",
+      "Edit(/.claude/skills/databricks-liquid-clustering-advisor/**)",
+      "Bash(python .claude/skills/databricks-liquid-clustering-advisor/scripts/liquid_clustering_advisor.py --warehouse-id a7ec64af665e284f --catalog dev --schema claude_skills_test --table lc_test_events --days 7)",
+      "Bash(python .claude/skills/databricks-liquid-clustering-advisor/scripts/liquid_clustering_advisor.py --warehouse-id a7ec64af665e284f --catalog dev --schema claude_skills_test --table lc_test_events --days 7 --execute --max-iterations 2)",
+      "Bash(python .claude/skills/databricks-liquid-clustering-advisor/test-fixtures/test_liquid_clustering_advisor.py)",
+      "Bash(git merge *)",
+      "Bash(git branch *)"
     ],
     "deny": [
       "Read(./.env)",
@@ -13,6 +21,9 @@
     ],
     "ask": [
       "Bash(git push:*)"
+    ],
+    "additionalDirectories": [
+      "D:\\projects\\claude_skills\\.claude\\skills\\databricks-liquid-clustering-advisor"
     ]
   }
 }
