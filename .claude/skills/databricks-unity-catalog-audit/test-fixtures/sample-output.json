@@ -1,0 +1,39 @@
+{
+  "_fixture_note": "Synthetic reconstruction of a real live run (2026-07-23) against 3 real catalogs / 75 real schemas. All catalog/schema names and principals here are placeholders, NOT the real workspace's actual names/identities -- the real run found the same check types (broad_group_holds_direct_object_grants fired twice, securable_owned_by_individual_user fired 63 times) at the counts documented in SKILL.md, but this fixture never reproduces real other-user identities or real internal project/schema names.",
+  "catalogs_audited": ["sandbox_catalog", "shared_catalog"],
+  "schemas_audited": 3,
+  "baseline_privileges": ["BROWSE", "USE_CATALOG", "USE_SCHEMA"],
+  "broad_group_names": ["account users", "users"],
+  "findings_count": 3,
+  "findings_by_check": {
+    "broad_group_holds_direct_object_grants": 1,
+    "securable_owned_by_individual_user": 2
+  },
+  "findings": [
+    {
+      "check": "broad_group_holds_direct_object_grants",
+      "securable_type": "CATALOG",
+      "securable_name": "shared_catalog",
+      "principal": "account users",
+      "privileges_beyond_baseline": ["MODIFY", "SELECT", "CREATE_TABLE"],
+      "detail": "The broad group 'account users' holds ['CREATE_TABLE', 'MODIFY', 'SELECT'] directly on catalog 'shared_catalog', beyond baseline browse/use access (['BROWSE', 'USE_CATALOG', 'USE_SCHEMA'])."
+    },
+    {
+      "check": "securable_owned_by_individual_user",
+      "securable_type": "CATALOG",
+      "securable_name": "sandbox_catalog",
+      "principal": "example.user@example.com",
+      "detail": "Catalog 'sandbox_catalog' is owned directly by an individual user account rather than a group or service principal -- a single person's account leaving would orphan ownership."
+    },
+    {
+      "check": "securable_owned_by_individual_user",
+      "securable_type": "SCHEMA",
+      "securable_name": "sandbox_catalog.demo_schema",
+      "principal": "example.user@example.com",
+      "detail": "Schema 'sandbox_catalog.demo_schema' is owned directly by an individual user account rather than a group or service principal -- a single person's account leaving would orphan ownership."
+    }
+  ],
+  "errors": {},
+  "overall_status": "findings",
+  "detail": "3 finding(s) across 2 catalog(s)/3 schema(s) -- see findings_by_check for a breakdown."
+}
